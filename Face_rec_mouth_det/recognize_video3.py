@@ -122,7 +122,7 @@ cvn = conversation(["Song_GH", "Kim_JW", "Choi_EH", "Unknown"])
 # construct the argument parser and parse the arguments
 TH_of_confidence = 0.3
 threshold = 0.1
-TH_of_Movement = 8
+TH_of_Movement = 1.3
 FRAMES = 1
 # initialize the frame COUNTers and the total number of blinks
 # 분류 가능한 이름들
@@ -171,7 +171,8 @@ def mouth_aspect_ratio(mouth):
 
     # return the mouth aspect ratio
     return mar
-
+T1 = getCurrentTime(time.time())
+T2 = getCurrentTime(time.time())
 #region
 # 파일 및 폴더 경로 지정
 PATH_predictor = "shape_predictor_68_face_landmarks.dat"
@@ -230,6 +231,9 @@ while True:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     (h, w) = frame.shape[:2]
 
+    T1 = getCurrentTime(time.time())
+    for key in KEYS:
+        time1[key] = getCurrentTime(time.time())
     # construct a blob from the image
     imageBlob = cv2.dnn.blobFromImage(
         cv2.resize(frame, (300, 300)), 1.0, (300, 300),
@@ -239,7 +243,6 @@ while True:
     # faces in the input image
     detector.setInput(imageBlob)
     detections = detector.forward()
-
     # loop over the detections
     for i in range(0, detections.shape[2]):
         # extract the confidence (i.e., probability) associated with
@@ -287,25 +290,29 @@ while True:
             Inner_mar = cvn.innermouth_aspect_ratio(Innermouth)
             Outtermouth = shape[outermouth_start:innermouth_end]
             
+            # 시간 미분 구하기
             time2[name] = getCurrentTime(time.time())
+            T2 = getCurrentTime(time.time())
             del_time = time2[name] - time1[name]
             cvn.outtermouth_distfactor(Outtermouth)
             specific_value2[name] = [cvn.imar, cvn.B, cvn.C, cvn.D, cvn.F]
-                        
+            #del_time = T2 - T1 
+            print(del_time)
+            if del_time > 0.01:
                 #specific_value2[name] = cvn.specific_area(Innermouth, Outtermouth)
-            Mouth_movement[name] = ( abs(specific_value2[name][0] - specific_value1[name][0])*20 + 
+                Mouth_movement[name] = (abs(specific_value2[name][0] - specific_value1[name][0])*30 + 
                                         abs(specific_value2[name][1] - specific_value1[name][1]) +
                                         abs(specific_value2[name][2] - specific_value1[name][2]) +
                                         abs(specific_value2[name][3] - specific_value1[name][3]) +
-                                        abs(specific_value2[name][4] - specific_value1[name][4])
-                                        )/ (del_time*10) 
-            time1[name] = time2[name]
-            specific_value1[name] = specific_value2[name]
+                                        abs(specific_value2[name][4] - specific_value1[name][4])*2
+                                        )/ (del_time*110)#(del_time*10) 
+                time1[name] = time2[name]
+                specific_value1[name] = specific_value2[name]
             #outter_mar = cvn.outtermouth_aspect_ratio(Outtermouth)
             #mar = (Inner_mar+outter_mar) / 2
 
             if Mouth_movement[name] > TH_of_Movement:
-              TOTAL_SUB[name] += 1
+              TOTAL_SUB[name] += 1*int(Mouth_movement[name]/TH_of_Movement)
 
             Last_time = getCurrentTime(time.time())
             print(Last_time)
