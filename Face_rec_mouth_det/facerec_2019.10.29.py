@@ -22,7 +22,7 @@ class speak_utils:
         self.color_b = 255
         self.specific_value1 = range(0,7)
         self.specific_value2 = range(0,7)
-        self.specific_values = np.zeros((7,20), dtype = np.float64)
+        self.specific_values = np.zeros((20,7), dtype = np.float64)
         self.time1 = 0
         self.time2 = 0
         self.Mouth_movement = 0
@@ -210,10 +210,16 @@ class speak_utils:
             self.color_b = 255
         elif option == "TOTAL_SUB" :
             self.TOTAL_SUB = 0
+
+def getTime(s):
+    ss = s / 1
+    return ss
+
 ########################실행시 고려할 부분########################
 # 가장 바깥에서, 딕셔너리를 통해, 각각의 이름에 대한 인스턴스 생성
 # 분류 가능한 이름들
 names = ["Song_GH", "Kim_JW", "Choi_EH", "Unknown"]
+names_detected = []
 
 # 각 이름들로 찾을 수 있는 speak_utils의 인스턴스의 딕셔너리 생성
 man = {name: speak_utils(name) for name in names}
@@ -227,13 +233,18 @@ TH_of_confidence = 0.6
 threshold = 0.1
 TH_of_Movement = 1.3
 FRAMES = 1
+
+# 시간 동기화
+First_time = getTime(time.time())
+for key in names:
+    man[key].time1 = getTime(time.time())
+loopnumber = 0
+man_timeset = True
+test_loop = 0
 #####################################################################
 
 # <editor-fold>
 #region
-def getTime(s):
-    ss = s / 1
-    return ss
 
 # 파일 및 폴더 경로 지정
 PATH_predictor = "shape_predictor_68_face_landmarks.dat"
@@ -278,14 +289,6 @@ fps = FPS().start()
 #endregion
 # </editor-fold>
 
-# 시간 동기화
-First_time = getTime(time.time())
-for key in names:
-    man[key].time1 = getTime(time.time())
-loopnumber = 0
-man_timeset = True
-test_loop = 0
-printnames = []
 
 # loop over frames from the video file stream
 while True:
@@ -353,7 +356,8 @@ while True:
 
             # 이름이 부여되는 시점
             name = le.classes_[j]
-            printnames.append(name)
+            # 얼굴이 검출된 이름만 따로 저장 -> 이후 작업은 이 이름에 대해서만
+            names_detected.append(name)
             # facial landmark 추출해서 인스턴스 멤버에 저장
             # self.inmarks, self.outmarks, self.midmark 값이 부여됨
             man[name].landmark(gray, startX, startY, endX, endY)
@@ -362,7 +366,7 @@ while True:
             
             # 미분 전에 미리 해줘야 할 것들
             man[name].time2 = getTime(time.time()) # 시간 바깥 while문에서, 해당 for문으로 들어오면서,
-            man[name].calculate_self(test_loop)
+            man[name].calculate_self(test_loop) # 몇 번째 반복중인지 전달
             print(test_loop)
 
             # 미분 함수 호출
@@ -370,26 +374,33 @@ while True:
             # self.Mouth_movement에 반영
             # 이 부분에 if loopnumber조건 추가 가능
             # 계산시 True가 되어 while문에서 time1 초기화
-            man_timeset = man[name].differential(0.05, 1) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
+
+            man_timeset = man[name].differential(0.3, 1) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
+            ''' 1초 기준, 혼자있을 때, timeloop는 0 - 9 까지 증가
+                0.5 혼자 4까지
+            '''
 
             # 역치값과 비교
             if man[name].Mouth_movement > TH_of_Movement:
                 man[name].TOTAL_SUB += 1*int(man[name].Mouth_movement/TH_of_Movement)
+    
     #### detection loop나오기 (while문과 동일 위치)
     # 직전의 검출 결과의 업데이트를 반영해서
     # 이름 기준으로 반복
     Last_time = getTime(time.time())
     # 2초동안 들린 소리가 누구 것에 가까운지 판단
     if (Last_time - First_time) > 1:
+        ''' 이 시간을 초기화 하기 전에, 말을 한 사람에게 추가적인 시간을 더 주자.
+            혹은 이 시간 자체를 없애고, 이전에 말을 한 사람이 검출된 시점을 기준으로 하자'''
         # 이전 검사 완료 이후 x초가 지났으면
         TOTAL_SUB_list = []
         # 모든 사람 인스턴스가 가진 self.TOTAL_SUB값을 리스트로 추출
-        for key in names:
+        for key in names_detected:
             TOTAL_SUB_list.append(man[key].TOTAL_SUB)
         # 화자 검출
         if sum(TOTAL_SUB_list) >= 1:
             # 누군가 한번 이상 말을 했으면
-            for name in names:
+            for name in names_detected:
             # 누가 가장 입을 많이 움직였는가 확인할 것
                 if man[name].TOTAL_SUB >= max(TOTAL_SUB_list):
                     # 현재 name을 가진 사람이 가장 말을 많이 했다면
@@ -411,7 +422,7 @@ while True:
     #print(TOTAL_SUB.items())
     # 만들어줘야 할 변수: starx-endy,
     if detections.shape[2] > 0:
-        for name in printnames:
+        for name in names_detected:
             # 이름 출력 텍스트
             text = "{}: {:.2f}%".format(name, proba * 100)
             # Mouth_movement 출력 텍스트
@@ -431,7 +442,7 @@ while True:
             cv2.putText(frame, t2, (x-130, y-100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
             # 터미널 출력
             print(Last_time,'/', name, "'s TOTAL:", man[name].Mouth_movement)
-        printnames = []
+        names_detected = []
     ###############################################################
     # update the FPS counter
     fps.update()
