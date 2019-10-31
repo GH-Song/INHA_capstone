@@ -20,8 +20,8 @@ class speak_utils:
         self.TOTAL_SUB = 0
         self.color_a = 255
         self.color_b = 255
-        self.specific_value1 = range(0,7)
-        self.specific_value2 = range(0,7)
+        #self.specific_value1 = range(0,7)
+        #self.specific_value2 = range(0,7)
         self.specific_values = np.zeros((100,7), dtype = np.float64)
         self.time1 = 0;    self.time2 = 0
         self.Mouth_movement = 0
