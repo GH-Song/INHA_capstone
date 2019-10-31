@@ -16,23 +16,22 @@ import os
 class speak_utils:
     '''대화와 관련된 클래스'''
     def __init__(self, name):
-        self.names = name
+        self.name = name
         self.TOTAL_SUB = 0
         self.color_a = 255
         self.color_b = 255
         self.specific_value1 = range(0,7)
         self.specific_value2 = range(0,7)
         self.specific_values = np.zeros((20,7), dtype = np.float64)
-        self.time1 = 0
-        self.time2 = 0
+        self.time1 = 0;    self.time2 = 0
         self.Mouth_movement = 0
-        self.sx = 0
-        self.sy = 0
-        self.ex = 0
-        self.ey = 0
+        self.sx = 0;    self.sy = 0
+        self.ex = 0;    self.ey = 0
         self.Inmarks = []
         self.Outmarks = []
         self.Midmark = []
+        self.timeset = True
+        self.loop = 0
 
     def landmark(self, gray, sx=0, sy=0, ex=0, ey=0):
         '''검출된 얼굴 좌표들을 저장'''
@@ -160,10 +159,18 @@ class speak_utils:
             self.specific_value2 = [self.imar, self.OB, self.OC, self.OD, self.OF]
 
     def print_specific_values(self):
-        print(self.specific_values[:5,:5])
+        print(self.name, "의 값:\n", self.specific_values[:5,:6])
 
     def update_specific_values(self, row=0):
-        self.specific_values[row,:5] = [self.imar, self.OB, self.OC, self.OD, self.OF]
+        self.specific_values[row,:6] = [self.time2, self.imar, self.OB, self.OC, self.OD, self.OF]
+
+    def difference_of_specific_values(self):
+        # 행 1-0 2-1 3-2...
+        difference=list(range(20))
+        for i in range(self.loop + 1):
+            difference[i] = self.specific_values[i+1, :6] - self.specific_values[i, :6]
+        return difference
+        # difference의 한 원소는 1행 6열 numpy
 
     def specific_values_cal(self):
         np.sum(self.specific_values[1,:5])
@@ -176,12 +183,13 @@ class speak_utils:
             print(del_time)
             if del_time > timeref:
                 # 각 specific value에 대해, 가중치를 고려해서 입 움직임의 정도를 수치화
-                self.Mouth_movement = (abs(self.specific_value2[0] - self.specific_value1[0])*30 +
-                                        abs(self.specific_value2[1] - self.specific_value1[1]) +
-                                        abs(self.specific_value2[2] - self.specific_value1[2]) +
-                                        abs(self.specific_value2[3] - self.specific_value1[3]) +
-                                        abs(self.specific_value2[4] - self.specific_value1[4])*2
-                                        )/ (del_time*110)
+                self.Mouth_movement = (
+                    abs(self.specific_value2[0] - self.specific_value1[0])*30 +
+                    abs(self.specific_value2[1] - self.specific_value1[1]) +
+                    abs(self.specific_value2[2] - self.specific_value1[2]) +
+                    abs(self.specific_value2[3] - self.specific_value1[3]) +
+                    abs(self.specific_value2[4] - self.specific_value1[4])*2
+                )/ (del_time*110)
                 self.time1 = self.time2
                 self.specific_value1 = self.specific_value2
                 return True
@@ -189,14 +197,32 @@ class speak_utils:
                 return False
         elif option == 2:
             # 계산방식 2
+            del_time = self.time2 - self.time1
+            if del_time > timeref:
+                del_values = self.difference_of_specific_values()
+                # del_time 은 del_values[0][0]
+                # 각 specific value에 대해, 가중치를 고려해서 입 움직임의 정도를 수치화
+                self.Mouth_movement = 0
+                for i in range(self.loop):
+                    self.Mouth_movement += (
+                        abs(del_values[i][1])*30 +
+                        abs(del_values[i][2])+
+                        abs(del_values[i][3])+
+                        abs(del_values[i][4])+
+                        abs(del_values[i][5])*2
+                    )/ (del_values[i][0]*110)
+
+                self.time1 = self.time2
+                self.specific_value1 = self.specific_value2
+                return True # 이것이 반환되면 self.loop초기화
             return False
 
-    def calculate_self(self, row = 0):
+    def calculate_self(self):
         # self.face_area()
         self.innermouth_aspect_ratio() # self.imar
         self.outtermouth_distfactor() # self.A,B,C..
         self.update_specific_value(2) # 위의 계산을 time2의 specific value에 반영
-        self.update_specific_values(row)
+        self.update_specific_values(self.loop)
         self.print_specific_values()
         return
 
@@ -238,9 +264,6 @@ FRAMES = 1
 First_time = getTime(time.time())
 for key in names:
     man[key].time1 = getTime(time.time())
-loopnumber = 0
-man_timeset = True
-test_loop = 0
 #####################################################################
 
 # <editor-fold>
@@ -302,13 +325,7 @@ while True:
     (h, w) = frame.shape[:2]
 
     # while문에 대한 man.time1의 시간 동기화
-    if man_timeset == True:
-        for key in names:
-            man[key].time1 = getTime(time.time())
-        man_timeset = False
-        test_loop = 0
-    else:
-        test_loop += 1
+    ######문제발견: timeset, testloop 등이 개인별로 있어야 함
 
     # construct a blob from the image
     imageBlob = cv2.dnn.blobFromImage(
@@ -366,8 +383,8 @@ while True:
 
             # 미분 전에 미리 해줘야 할 것들
             man[name].time2 = getTime(time.time()) # 시간 바깥 while문에서, 해당 for문으로 들어오면서,
-            man[name].calculate_self(test_loop) # 몇 번째 반복중인지 전달
-            print(test_loop)
+            man[name].calculate_self() # 몇 번째 반복중인지 전달
+            print(man[name].loop)
 
             # 미분 함수 호출
             # time2 - time1에 대해, specific_value의 변화 계산
@@ -375,16 +392,25 @@ while True:
             # 이 부분에 if loopnumber조건 추가 가능
             # 계산시 True가 되어 while문에서 time1 초기화
 
-            man_timeset = man[name].differential(0.3, 1) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
+            man_timeset = man[name].differential(0.05, 2) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
             ''' 1초 기준, 혼자있을 때, timeloop는 0 - 9 까지 증가
                 0.5 혼자 4까지
+                timeloop reset될 떄마다 numpy도 리셋해야함
             '''
-
             # 역치값과 비교
             if man[name].Mouth_movement > TH_of_Movement:
                 man[name].TOTAL_SUB += 1*int(man[name].Mouth_movement/TH_of_Movement)
 
     #### detection loop나오기 (while문과 동일 위치)
+    for name in names_detected:
+        # 검출 안된 이름이 계속 쌓이는 문제
+        if man[name].timeset == True:
+            man[name].time1 = getTime(time.time())
+            man[name].timeset = False
+            man[name].loop = 0
+        else:
+            man[name].loop += 1
+
     # 직전의 검출 결과의 업데이트를 반영해서
     # 이름 기준으로 반복
     Last_time = getTime(time.time())
