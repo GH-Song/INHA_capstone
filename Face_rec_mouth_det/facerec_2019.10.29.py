@@ -50,7 +50,6 @@ class speak_utils:
         return
 
     def speakerfind():
-        # 이런 함수는 스태틱으로
         return
 
     def innermouth_aspect_ratio(self):
