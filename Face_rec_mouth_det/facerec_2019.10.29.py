@@ -22,7 +22,7 @@ class speak_utils:
         self.color_b = 255
         self.specific_value1 = range(0,7)
         self.specific_value2 = range(0,7)
-        self.specific_values = np.zeros((20,7), dtype = np.float64)
+        self.specific_values = np.zeros((100,7), dtype = np.float64)
         self.time1 = 0;    self.time2 = 0
         self.Mouth_movement = 0
         self.sx = 0;    self.sy = 0
@@ -166,7 +166,7 @@ class speak_utils:
 
     def difference_of_specific_values(self):
         # 행 1-0 2-1 3-2...
-        difference=list(range(20))
+        difference = list(range(100))
         for i in range(self.loop + 1):
             difference[i] = self.specific_values[i+1, :6] - self.specific_values[i, :6]
         return difference
@@ -257,7 +257,7 @@ man = {name: speak_utils(name) for name in names}
 # 기준값
 TH_of_confidence = 0.6
 #threshold = 0.1
-TH_of_Movement = 1.3
+TH_of_Movement = 0.9
 FRAMES = 1
 
 # 시간 동기화
@@ -392,7 +392,7 @@ while True:
             # 이 부분에 if loopnumber조건 추가 가능
             # 계산시 True가 되어 while문에서 time1 초기화
 
-            man_timeset = man[name].differential(0.05, 2) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
+            man[name].timeset = man[name].differential(0.2, 2) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
             ''' 1초 기준, 혼자있을 때, timeloop는 0 - 9 까지 증가
                 0.5 혼자 4까지
                 timeloop reset될 떄마다 numpy도 리셋해야함
