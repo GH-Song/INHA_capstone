@@ -230,7 +230,7 @@ man = {name: speak_utils(name) for name in names}
 
 # 기준값
 TH_of_confidence = 0.6
-threshold = 0.1
+#threshold = 0.1
 TH_of_Movement = 1.3
 FRAMES = 1
 
@@ -363,7 +363,7 @@ while True:
             man[name].landmark(gray, startX, startY, endX, endY)
 
             # 시간 미분 구하기 - 클래스 함수로
-            
+
             # 미분 전에 미리 해줘야 할 것들
             man[name].time2 = getTime(time.time()) # 시간 바깥 while문에서, 해당 for문으로 들어오면서,
             man[name].calculate_self(test_loop) # 몇 번째 반복중인지 전달
@@ -383,7 +383,7 @@ while True:
             # 역치값과 비교
             if man[name].Mouth_movement > TH_of_Movement:
                 man[name].TOTAL_SUB += 1*int(man[name].Mouth_movement/TH_of_Movement)
-    
+
     #### detection loop나오기 (while문과 동일 위치)
     # 직전의 검출 결과의 업데이트를 반영해서
     # 이름 기준으로 반복
@@ -435,7 +435,7 @@ while True:
             for (x, y) in man[name].Outmarks:
                 cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
             # 말풍선
-            x, y = man[name].Midmark[0,0], man[name].Midmark[0,1] 
+            x, y = man[name].Midmark[0,0], man[name].Midmark[0,1]
             cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (255, 255, 255), -1)
             cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (man[name].color_a, 255, man[name].color_b), 3)
             cv2.putText(frame, text, (x-160, y-130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
