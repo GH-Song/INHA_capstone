@@ -148,9 +148,9 @@ while True:
             # 시간 미분 구하기 - 클래스 함수로
 
             # 미분 전에 미리 해줘야 할 것들
-            man[name].time2 = getTime(pytime(), reftime) # 시간 바깥 while문에서, 해당 for문으로 들어오면서,
-            man[name].calculate_self() # 몇 번째 반복중인지 전달
-            print(man[name].loop)
+            detection_time = getTime(pytime(), reftime)
+            man[name].calculate_self(detection_time) # 몇 번째 반복중인지 전달
+            print("측정 누적횟수:", man[name].loop)
 
             # 미분 함수 호출
             # time2 - time1에 대해, specific_value의 변화 계산
@@ -169,9 +169,9 @@ while True:
 
     #### detection loop나오기 (while문과 동일 위치)
     for name in names_detected:
-        # 검출 안된 이름이 계속 쌓이는 문제
+        # 검출 안된 이름이 계속 쌓이는 문제 : time2-time1이 계속 0.2보다 작은 것
         if man[name].timeset == True:
-            man[name].time1 = getTime(pytime(), reftime)
+            # man[name].time1 = getTime(pytime(), reftime)
             man[name].timeset = False
             man[name].loop = 0
         else:
@@ -232,8 +232,7 @@ while True:
             cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (man[name].color_a, 255, man[name].color_b), 3)
             cv2.putText(frame, text, (x-160, y-130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
             cv2.putText(frame, t2, (x-130, y-100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-            # 터미널 출력
-            print(Last_time,'/', name, "'s TOTAL:", man[name].Mouth_movement)
+
         names_detected = []
     ###############################################################
     # update the FPS counter
