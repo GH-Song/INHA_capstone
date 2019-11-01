@@ -11,238 +11,13 @@ import time
 import cv2
 import dlib
 import os
+import speakutils
+from speakutils import speak_utils
+from time import time as pytime
 
-# my class
-class speak_utils:
-    '''대화와 관련된 클래스'''
-    def __init__(self, name):
-        self.name = name
-        self.TOTAL_SUB = 0
-        self.color_a = 255
-        self.color_b = 255
-        self.specific_value1 = range(0,7)
-        self.specific_value2 = range(0,7)
-        self.specific_values = np.zeros((20,7), dtype = np.float64)
-        self.time1 = 0;    self.time2 = 0
-        self.Mouth_movement = 0
-        self.sx = 0;    self.sy = 0
-        self.ex = 0;    self.ey = 0
-        self.Inmarks = []
-        self.Outmarks = []
-        self.Midmark = []
-        self.timeset = True
-        self.loop = 0
-
-    def landmark(self, gray, sx=0, sy=0, ex=0, ey=0):
-        '''검출된 얼굴 좌표들을 저장'''
-        # grab the indexes of the facial landmarks for the left and
-        self.sx = int(sx);    self.sy = int(sy)
-        self.ex = int(ex);    self.ey = int(ey)
-        outmark_start, outmark_end = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
-        inmark_start, inmark_end = face_utils.FACIAL_LANDMARKS_IDXS["inner_mouth"]
-
-        rect = dlib.rectangle(left=self.sx, top=self.sy, right=self.ex, bottom=self.ey)
-        shape = predictor(gray, rect)
-        shape = face_utils.shape_to_np(shape)
-        self.Inmarks = shape[inmark_start:inmark_end]
-        self.Outmarks = shape[outmark_start: outmark_end]
-        self.Midmark = shape[28:29]
-        return
-
-    def speakerfind():
-        # 이런 함수는 스태틱으로
-        return
-
-    def innermouth_aspect_ratio(self):
-        '''입이 벌어진 정도를 확인하는 함수'''
-        mouth = self.Inmarks
-        # compute the euclidean distances between the two sets of
-        # vertical mouth landmarks (x, y)-coordinates
-        A = dist.euclidean(mouth[1], mouth[7])
-        B = dist.euclidean(mouth[2], mouth[6])
-        C = dist.euclidean(mouth[3], mouth[5])
-
-        # compute the euclidean distance between the horizontal
-        # mouth landmark (x, y)-coordinates
-        D = dist.euclidean(mouth[0], mouth[4])
-
-        # compute the mouth aspect ratio
-        self.imar = (A + B + C) / (3.0 * D)
-
-        # return the mouth aspect ratio
-        return self.imar
-
-    def face_area(self):
-        # 얼굴 면적 계산하는 함수
-
-        X = dist.euclidean(self.sx, self.ex)
-        Y = dist.euclidean(self.sy, self.ey)
-
-        self.face_area = X*Y
-        return self.face_area
-
-    # 바깥 입술 면적 대비 벌린 면적 비율?
-    def outtermouth_area(self):
-        mouth = self.Outmarks
-        # 바깥 입술의 면적을 계산하는 함수
-        # 세로 선 중 3개의 y축 길이
-        B = dist.euclidean(mouth[2], mouth[10])
-        C = dist.euclidean(mouth[3], mouth[9])
-        D = dist.euclidean(mouth[4], mouth[8])
-
-        X = dist.euclidean(mouth[0], mouth[6])
-        Y = (B+C+D) / 3
-        self.outtermouth_area = X*Y
-        return self.outtermouth_area
-
-    def Innermouth_area(self):
-        mouth = self.inmarks
-        A = dist.euclidean(mouth[1], mouth[7])
-        B = dist.euclidean(mouth[2], mouth[6])
-        C = dist.euclidean(mouth[3], mouth[5])
-        # compute the euclidean distance between the horizontal
-        # mouth landmark (x, y)-coordinates
-        X = dist.euclidean(mouth[0], mouth[4])
-        # compute the mouth aspect ratio
-        Y = (A + B + C) / (3.0)
-        # return the mouth aspect ratio
-        return X*Y
-
-    def specific_area(self, Innermouth, Outtermouth):
-        Inner_area = self.Innermouth_area(Innermouth)
-        outter_area = self.outtermouth_area(Outtermouth)
-        specific_area = (Inner_area* 10)/outter_area
-
-        #return specific_area
-        return outter_area
-
-    def outtermouth_aspect_ratio(self):
-        mouth = self.Outmarks
-        # compute the euclidean distances between the two sets of
-        # vertical mouth landmarks (x, y)-coordinates
-        A = dist.euclidean(mouth[1], mouth[11])
-        B = dist.euclidean(mouth[2], mouth[10])
-        C = dist.euclidean(mouth[3], mouth[9])
-        D = dist.euclidean(mouth[4], mouth[8])
-        E = dist.euclidean(mouth[5], mouth[7])
-        # compute the euclidean distance between the horizontal
-        # mouth landmark (x, y)-coordinates
-        F = dist.euclidean(mouth[0], mouth[6])
-
-        # compute the mouth aspect ratio
-        omar = (A+B+C+D+E) / (5.0 * F)
-
-        # return the mouth aspect ratio
-        return omar
-
-    def outtermouth_distfactor(self):
-        # compute the euclidean distances between the two sets of
-        # vertical mouth landmarks (x, y)-coordinates
-        mouth = self.Outmarks
-        self.OA = dist.euclidean(mouth[1], mouth[11])
-        self.OB = dist.euclidean(mouth[2], mouth[10])
-        self.OC = dist.euclidean(mouth[3], mouth[9])
-        self.OD = dist.euclidean(mouth[4], mouth[8])
-        self.OE = dist.euclidean(mouth[5], mouth[7])
-        # compute the euclidean distance between the horizontal
-        # mouth landmark (x, y)-coordinates
-        self.OF = dist.euclidean(mouth[0], mouth[6])
-        return
-
-    def distance_factor(self, Innermouth, Outtermouth):
-        return
-
-    def update_specific_value(self, option):
-        if option == 1:
-            self.specific_value1 = [self.imar, self.OB, self.OC, self.OD, self.OF]
-        else:
-            self.specific_value2 = [self.imar, self.OB, self.OC, self.OD, self.OF]
-
-    def print_specific_values(self):
-        print(self.name, "의 값:\n", self.specific_values[:5,:6])
-
-    def update_specific_values(self, row=0):
-        self.specific_values[row,:6] = [self.time2, self.imar, self.OB, self.OC, self.OD, self.OF]
-
-    def difference_of_specific_values(self):
-        # 행 1-0 2-1 3-2...
-        difference = list(range(20))
-        for i in range(self.loop + 1):
-            # 5회 반복시 loop -- 4 i는 0,1,2,3,4
-            if i < self.loop:
-                difference[i] = self.specific_values[i+1, :6] - self.specific_values[i, :6]
-            else:
-                difference[i] = self.specific_values[i, :6] - self.specific_values[i-1, :6]
-
-        return difference
-        # difference의 한 원소는 1행 6열 numpy
-
-    def specific_values_cal(self):
-        np.sum(self.specific_values[1,:5])
-        array1 = self.specific_values[1,:5]
-    def differential(self, timeref, option):
-        '''Mouth_movement 값을 계산, 계산시 True반환'''
-        if option == 1:
-            # 계산방식 1
-            del_time = self.time2 - self.time1
-            print(del_time)
-            if del_time > timeref:
-                # 각 specific value에 대해, 가중치를 고려해서 입 움직임의 정도를 수치화
-                self.Mouth_movement = (
-                    abs(self.specific_value2[0] - self.specific_value1[0])*30 +
-                    abs(self.specific_value2[1] - self.specific_value1[1]) +
-                    abs(self.specific_value2[2] - self.specific_value1[2]) +
-                    abs(self.specific_value2[3] - self.specific_value1[3]) +
-                    abs(self.specific_value2[4] - self.specific_value1[4])*2
-                )/ (del_time*110)
-                self.time1 = self.time2
-                self.specific_value1 = self.specific_value2
-                return True
-            else:
-                return False
-        elif option == 2:
-            # 계산방식 2
-            del_time = self.time2 - self.time1
-            if del_time > timeref:
-                del_values = self.difference_of_specific_values()
-                # del_time 은 del_values[0][0]
-                # 각 specific value에 대해, 가중치를 고려해서 입 움직임의 정도를 수치화
-                self.Mouth_movement = 0
-                for i in range(self.loop):
-                    self.Mouth_movement += (
-                        abs(del_values[i][1])*30 +
-                        abs(del_values[i][2])+
-                        abs(del_values[i][3])+
-                        abs(del_values[i][4])+
-                        abs(del_values[i][5])*2
-                    )/ abs(del_values[i][0]*110)
-                self.time1 = self.time2
-                self.specific_values = np.zeros((20,7), dtype = np.float64)
-                return True # 이것이 반환되면 self.loop초기화
-            return False
-
-    def calculate_self(self):
-        # self.face_area()
-        self.innermouth_aspect_ratio() # self.imar
-        self.outtermouth_distfactor() # self.A,B,C..
-        self.update_specific_value(2) # 위의 계산을 time2의 specific value에 반영
-        self.update_specific_values(self.loop)
-        self.print_specific_values()
-        return
-
-    def refresh(self, option):
-        if option == "all":
-            self.TOTAL_SUB = 0
-            self.color_a = 255
-            self.color_b = 255
-        elif option == "color":
-            self.color_a = 255
-            self.color_b = 255
-        elif option == "TOTAL_SUB" :
-            self.TOTAL_SUB = 0
-
-def getTime(s):
-    ss = s / 1
+reftime = pytime()
+def getTime(s, referencetime = 0):
+    ss = s / 1 - referencetime
     return ss
 
 ########################실행시 고려할 부분########################
@@ -254,27 +29,22 @@ names_detected = []
 # 각 이름들로 찾을 수 있는 speak_utils의 인스턴스의 딕셔너리 생성
 man = {name: speak_utils(name) for name in names}
 
-# {"Song_GH":inst1 , "Kim_JW":inst2, "Choi_EH":inst3, "Unknown":inst4}
-# Man["Song_GH"] == inst1
-# Man[name].COUNTER
-
 # 기준값
 TH_of_confidence = 0.6
-#threshold = 0.1
 TH_of_Movement = 0.6
 FRAMES = 1
 
 # 시간 동기화
-First_time = getTime(time.time())
+First_time = getTime(pytime(), reftime)
 for key in names:
-    man[key].time1 = getTime(time.time())
+    man[key].time1 = getTime(pytime(), reftime)
 #####################################################################
 
 # <editor-fold>
 #region
 
 # 파일 및 폴더 경로 지정
-PATH_predictor = "shape_predictor_68_face_landmarks.dat"
+
 PATH_facedetection='face_detection_model'
 PATH_recognizer = 'output/recognizer.pickle'
 PATH_le = 'output/le.pickle'
@@ -282,10 +52,6 @@ PATH_le = 'output/le.pickle'
 # grab the indexes of the facial landmarks for the left and
 outmark_start, outmark_end = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
 inmark_start, inmark_end = face_utils.FACIAL_LANDMARKS_IDXS["inner_mouth"]
-
-# initialize dlib's face detector (HOG-based) and then create
-print("[INFO] loading facial landmark predictor...")
-predictor = dlib.shape_predictor(PATH_predictor)
 
 # initialize the video stream and allow the cammera sensor to warmup
 print("[INFO] camera sensor warming up...")
@@ -316,7 +82,6 @@ fps = FPS().start()
 #endregion
 # </editor-fold>
 
-
 # loop over frames from the video file stream
 while True:
     # grab the frame from the threaded video stream
@@ -327,9 +92,6 @@ while True:
     frame = imutils.resize(frame, width=600)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     (h, w) = frame.shape[:2]
-
-    # while문에 대한 man.time1의 시간 동기화
-    ######문제발견: timeset, testloop 등이 개인별로 있어야 함
 
     # construct a blob from the image
     imageBlob = cv2.dnn.blobFromImage(
@@ -386,7 +148,7 @@ while True:
             # 시간 미분 구하기 - 클래스 함수로
 
             # 미분 전에 미리 해줘야 할 것들
-            man[name].time2 = getTime(time.time()) # 시간 바깥 while문에서, 해당 for문으로 들어오면서,
+            man[name].time2 = getTime(pytime(), reftime) # 시간 바깥 while문에서, 해당 for문으로 들어오면서,
             man[name].calculate_self() # 몇 번째 반복중인지 전달
             print(man[name].loop)
 
@@ -409,7 +171,7 @@ while True:
     for name in names_detected:
         # 검출 안된 이름이 계속 쌓이는 문제
         if man[name].timeset == True:
-            man[name].time1 = getTime(time.time())
+            man[name].time1 = getTime(pytime(), reftime)
             man[name].timeset = False
             man[name].loop = 0
         else:
@@ -417,7 +179,7 @@ while True:
 
     # 직전의 검출 결과의 업데이트를 반영해서
     # 이름 기준으로 반복
-    Last_time = getTime(time.time())
+    Last_time = getTime(pytime(), reftime)
     # 2초동안 들린 소리가 누구 것에 가까운지 판단
     if (Last_time - First_time) > 1:
         ''' 이 시간을 초기화 하기 전에, 말을 한 사람에게 추가적인 시간을 더 주자.
@@ -441,7 +203,7 @@ while True:
                     # 화자임을 표시
                     man[name].color_a = 50
                     man[name].color_b = 50
-                    First_time = getTime(time.time())
+                    First_time = getTime(pytime(), reftime)
                 else:
                     man[name].refresh("color")
         else:
