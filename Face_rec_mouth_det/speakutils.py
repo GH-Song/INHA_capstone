@@ -20,12 +20,13 @@ predictor = dlib.shape_predictor(PATH_predictor)
 # my class
 class speak_utils:
     '''대화와 관련된 클래스'''
-    def __init__(self, name):
+    def __init__(self, name, buffersize = 20):
         self.name = name
+        self.buffersize = buffersize
         self.TOTAL_SUB = 0
         self.color_a = 255
         self.color_b = 255
-        self.specific_values = np.zeros((20,7), dtype = np.float64)
+        self.specific_values = np.zeros((self.buffersize,7), dtype = np.float64)
         self.time1 = 0;    self.time2 = 0
         self.Mouth_movement = 0
         self.sx = 0;    self.sy = 0
@@ -161,15 +162,16 @@ class speak_utils:
         else:
             self.specific_value2 = [self.imar, self.OB, self.OC, self.OD, self.OF]
 
-    def print_specific_values(self):
-        print(self.name, "의 값:\n", self.specific_values[:5,:6])
+    def print_specific_values(self, data_start = 0, data_size = 5):
+        data_end = data_start + data_size
+        print(self.name, "의 값:\n", self.specific_values[data_start:data_end,:6])
 
     def update_specific_values(self, row=0):
         self.specific_values[row,:6] = [self.time2, self.imar, self.OB, self.OC, self.OD, self.OF]
 
     def difference_of_specific_values(self):
         # 행 1-0 2-1 3-2...
-        difference = list(range(20))
+        difference = list(range(self.buffersize))
         for i in range(self.loop + 1):
             # 5회 반복시 loop -- 4 i는 0,1,2,3,4
             if i < self.loop:
@@ -220,17 +222,23 @@ class speak_utils:
                         abs(del_values[i][5])*2
                     )/ abs(del_values[i][0]*110)
                 self.time1 = self.time2
-                self.specific_values = np.zeros((20,7), dtype = np.float64)
+                self.specific_values = np.zeros((self.buffersize,7), dtype = np.float64)
                 return True # 이것이 반환되면 self.loop초기화
-            return False
-
-    def calculate_self(self):
+            else:
+                return False
+        else:
+            return
+    def calculate_self(self, detection_time, printkey = (0,5)):
         # self.face_area()
+        self.time2 = detection_time
         self.innermouth_aspect_ratio() # self.imar
         self.outtermouth_distfactor() # self.A,B,C..
         self.update_specific_value(2) # 위의 계산을 time2의 specific value에 반영
         self.update_specific_values(self.loop)
-        self.print_specific_values()
+        if printkey == (0,5):
+            self.print_specific_values()
+        else:
+            self.print_specific_values(printkey[0],printkey[1])
         return
 
     def refresh(self, option):
