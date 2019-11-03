@@ -17,6 +17,9 @@ PATH_predictor = "shape_predictor_68_face_landmarks.dat"
 print("[INFO] loading facial landmark predictor in speakutils...")
 predictor = dlib.shape_predictor(PATH_predictor)
 
+outmark_start, outmark_end = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
+inmark_start, inmark_end = face_utils.FACIAL_LANDMARKS_IDXS["inner_mouth"]
+
 # my class
 class speak_utils:
     '''대화와 관련된 클래스'''
@@ -36,15 +39,17 @@ class speak_utils:
         self.Midmark = []
         self.timeset = True
         self.loop = 0
+        self.probability = 0
+        self.face_area = 0
 
     def landmark(self, gray, sx=0, sy=0, ex=0, ey=0):
         '''검출된 얼굴 좌표들을 저장'''
         # grab the indexes of the facial landmarks for the left and
         self.sx = int(sx);    self.sy = int(sy)
         self.ex = int(ex);    self.ey = int(ey)
-        outmark_start, outmark_end = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
-        inmark_start, inmark_end = face_utils.FACIAL_LANDMARKS_IDXS["inner_mouth"]
-
+        X = self.sx - self.ex
+        Y = self.sy - self.ey
+        self.face_area = abs(X*Y)
         rect = dlib.rectangle(left=self.sx, top=self.sy, right=self.ex, bottom=self.ey)
         shape = predictor(gray, rect)
         shape = face_utils.shape_to_np(shape)
@@ -78,13 +83,7 @@ class speak_utils:
 
     def face_area(self):
         # 얼굴 면적 계산하는 함수
-
-        X = dist.euclidean(self.sx, self.ex)
-        Y = dist.euclidean(self.sy, self.ey)
-
-        self.face_area = X*Y
-        return self.face_area
-
+        return
     # 바깥 입술 면적 대비 벌린 면적 비율?
     def outtermouth_area(self):
         mouth = self.Outmarks
@@ -153,15 +152,6 @@ class speak_utils:
         self.OF = dist.euclidean(mouth[0], mouth[6])
         return
 
-    def distance_factor(self, Innermouth, Outtermouth):
-        return
-
-    def update_specific_value(self, option):
-        if option == 1:
-            self.specific_value1 = [self.imar, self.OB, self.OC, self.OD, self.OF]
-        else:
-            self.specific_value2 = [self.imar, self.OB, self.OC, self.OD, self.OF]
-
     def print_specific_values(self, data_start = 0, data_size = 5):
         data_end = data_start + data_size
         print(self.name, "의 값:\n", self.specific_values[data_start:data_end,:6])
@@ -178,13 +168,13 @@ class speak_utils:
                 difference[i] = self.specific_values[i+1, :6] - self.specific_values[i, :6]
             else:
                 difference[i] = self.specific_values[i, :6] - self.specific_values[i-1, :6]
-
         return difference
         # difference의 한 원소는 1행 6열 numpy
 
     def specific_values_cal(self):
         np.sum(self.specific_values[1,:5])
         array1 = self.specific_values[1,:5]
+
     def differential(self, timeref, option):
         '''Mouth_movement 값을 계산, 계산시 True반환'''
         if option == 1:
@@ -216,11 +206,12 @@ class speak_utils:
                 for i in range(self.loop):
                     self.Mouth_movement += (
                         abs(del_values[i][1])*30 +
-                        abs(del_values[i][2])+
+                        (abs(del_values[i][2])+
                         abs(del_values[i][3])+
                         abs(del_values[i][4])+
-                        abs(del_values[i][5])*2
+                        abs(del_values[i][5])*5)/ self.face_area
                     )/ abs(del_values[i][0]*110)
+                self.Mouth_movement = self.Mouth_movement / (self.loop+1)
                 self.time1 = self.time2
                 self.specific_values = np.zeros((self.buffersize,7), dtype = np.float64)
                 return True # 이것이 반환되면 self.loop초기화
@@ -233,7 +224,6 @@ class speak_utils:
         self.time2 = detection_time
         self.innermouth_aspect_ratio() # self.imar
         self.outtermouth_distfactor() # self.A,B,C..
-        self.update_specific_value(2) # 위의 계산을 time2의 specific value에 반영
         self.update_specific_values(self.loop)
         if printkey == (0,5):
             self.print_specific_values()
@@ -246,6 +236,8 @@ class speak_utils:
             self.TOTAL_SUB = 0
             self.color_a = 255
             self.color_b = 255
+            self.probability = 0
+            self.Mouth_movement = 0
         elif option == "color":
             self.color_a = 255
             self.color_b = 255
