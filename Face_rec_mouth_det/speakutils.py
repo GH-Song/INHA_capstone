@@ -23,13 +23,16 @@ inmark_start, inmark_end = face_utils.FACIAL_LANDMARKS_IDXS["inner_mouth"]
 # my class
 class speak_utils:
     '''대화와 관련된 클래스'''
-    def __init__(self, name, buffersize = 20):
+    def __init__(self, name, TH, buffersize = 20):
+        self.TH_of_Movement = TH
         self.name = name
         self.buffersize = buffersize
         self.TOTAL_SUB = 0
         self.color_a = 255
         self.color_b = 255
-        self.specific_values = np.zeros((self.buffersize,7), dtype = np.float64)
+        t = np.ones((self.buffersize,1), dtype = np.float64)/10000
+        v = np.zeros((self.buffersize,7), dtype = np.float64)
+        self.specific_values = np.concatenate((t,v), axis=1)
         self.time1 = 0;    self.time2 = 0
         self.Mouth_movement = 0
         self.sx = 0;    self.sy = 0
@@ -41,7 +44,8 @@ class speak_utils:
         self.loop = 0
         self.probability = 0
         self.face_area = 0
-
+        print(self.name+"'s class is created")
+        print(self.specific_values)
     def landmark(self, gray, sx=0, sy=0, ex=0, ey=0):
         '''검출된 얼굴 좌표들을 저장'''
         # grab the indexes of the facial landmarks for the left and
@@ -159,18 +163,6 @@ class speak_utils:
     def update_specific_values(self, row=0):
         self.specific_values[row,:6] = [self.time2, self.imar, self.OB, self.OC, self.OD, self.OF]
 
-    def difference_of_specific_values(self):
-        # 행 1-0 2-1 3-2...
-        difference = list(range(self.buffersize))
-        for i in range(self.loop + 1):
-            # 5회 반복시 loop -- 4 i는 0,1,2,3,4
-            if i < self.loop:
-                difference[i] = self.specific_values[i+1, :6] - self.specific_values[i, :6]
-            else:
-                difference[i] = self.specific_values[i, :6] - self.specific_values[i-1, :6]
-        return difference
-        # difference의 한 원소는 1행 6열 numpy
-
     def specific_values_cal(self):
         np.sum(self.specific_values[1,:5])
         array1 = self.specific_values[1,:5]
@@ -179,46 +171,38 @@ class speak_utils:
         '''Mouth_movement 값을 계산, 계산시 True반환'''
         if option == 1:
             # 계산방식 1
-            del_time = self.time2 - self.time1
-            print(del_time)
-            if del_time > timeref:
-                # 각 specific value에 대해, 가중치를 고려해서 입 움직임의 정도를 수치화
-                self.Mouth_movement = (
-                    abs(self.specific_value2[0] - self.specific_value1[0])*30 +
-                    abs(self.specific_value2[1] - self.specific_value1[1]) +
-                    abs(self.specific_value2[2] - self.specific_value1[2]) +
-                    abs(self.specific_value2[3] - self.specific_value1[3]) +
-                    abs(self.specific_value2[4] - self.specific_value1[4])*2
-                )/ (del_time*110)
-                self.time1 = self.time2
-                self.specific_value1 = self.specific_value2
-                return True
-            else:
-                return False
+            return
         elif option == 2:
             # 계산방식 2
-            del_time = self.time2 - self.time1
-            if del_time > timeref:
-                del_values = self.difference_of_specific_values()
-                # del_time 은 del_values[0][0]
-                # 각 specific value에 대해, 가중치를 고려해서 입 움직임의 정도를 수치화
-                self.Mouth_movement = 0
-                for i in range(self.loop):
-                    self.Mouth_movement += (
-                        abs(del_values[i][1])*30 +
-                        (abs(del_values[i][2])+
-                        abs(del_values[i][3])+
-                        abs(del_values[i][4])+
-                        abs(del_values[i][5])*5)/ self.face_area
-                    )/ abs(del_values[i][0]*110)
-                self.Mouth_movement = self.Mouth_movement / (self.loop+1)
+            if (self.time2 - self.time1) > timeref and self.loop > 0:
+                # 시간은 기준보다 지났으며, 측정횟수는 2회 이상인가
+                max_index = self.loop + 1
+                del_t = np.diff(self.specific_values[:max_index,0]).reshape(self.loop,1) # 열 끼리 뺄셈
+                del_values = np.diff(self.specific_values[:max_index,1:6], axis = 0)
+                print("---------", self.name, "의 미분결과--------")
+                print("측정 누적횟수:", self.loop)
+                print("시간변화:", del_t)
+                print("값 변화:", del_values)
+                dev_values = del_values/del_t # 변화율 계산
+                total_dev = np.sum(abs(dev_values), axis=0).flatten() # 열 끼리 덧셈
+                self.Mouth_movement = np.sum(total_dev)*100/self.face_area/max_index
+                print("dev:", self.Mouth_movement/ (max_index+1))
+                self.Mouth_movement += self.specific_values[:max_index,1].mean()
+                print("mean imar:", self.specific_values[:max_index,1].mean())
                 self.time1 = self.time2
                 self.specific_values = np.zeros((self.buffersize,7), dtype = np.float64)
-                return True # 이것이 반환되면 self.loop초기화
+                self.loop = 0
             else:
-                return False
+                self.loop += 1
+
+            if self.Mouth_movement > self.TH_of_Movement:
+                self.TOTAL_SUB += 1*int(self.Mouth_movement/self.TH_of_Movement)
+                print("Upper than threshold")
+            else:
+                print("Lower than threshold")
         else:
             return
+
     def calculate_self(self, detection_time, printkey = (0,5)):
         # self.face_area()
         self.time2 = detection_time
@@ -237,7 +221,7 @@ class speak_utils:
             self.color_a = 255
             self.color_b = 255
             self.probability = 0
-            self.Mouth_movement = 0
+            # self.Mouth_movement = 0
         elif option == "color":
             self.color_a = 255
             self.color_b = 255
