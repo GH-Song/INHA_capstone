@@ -252,7 +252,7 @@ while True:
                 ])
             )
             print("record finish\n#########################\n", recorded_data)
-            recorded_data.to_pickle("output/recorded_mouth_data.pickle")
+            # recorded_data.to_pickle("output/recorded_mouth_data.pickle")
             if input("이번 데이터를 저장하시겠습니까? (y/n) ") == "y":
                 metadata = pd.read_pickle('output/recorded_mouth_data.pickle')
                 print("[INFO] Read DataFrame from pickle...")
@@ -275,12 +275,14 @@ while True:
         print("rec_time_limit:", rec_time_limit)
         reftime = getTime(pytime())
         datalabel = "speaking"
+        man = {name: speak_utils(name, size_of_buffer) for name in names}
     elif key == "n":
         # 앞으로 20초간 인식하도록 셋팅
         First_time = getTime(pytime())
         rec_time_limit = np.float64(10.0)
         reftime = getTime(pytime())
         datalabel = "nonspeaking"
+        man = {name: speak_utils(name, size_of_buffer) for name in names}
 # stop the timer and display FPS information
     fps.stop()
 
