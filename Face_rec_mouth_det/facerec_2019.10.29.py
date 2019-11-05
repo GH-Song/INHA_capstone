@@ -167,7 +167,11 @@ class speak_utils:
         # 행 1-0 2-1 3-2...
         difference = list(range(100))
         for i in range(self.loop + 1):
-            difference[i] = self.specific_values[i+1, :6] - self.specific_values[i, :6]
+            if i< self.loop:
+                difference[i] = self.specific_values[i+1, :6] - self.specific_values[i, :6]
+            else:
+                difference[i] = self.specific_values[i, :6] - self.specific_values[i-1 :6]
+
         return difference
         # difference의 한 원소는 1행 6열 numpy
 
