@@ -25,21 +25,25 @@ def getTime(s, referencetime = 0):
 ########################실행시 고려할 부분########################
 # 가장 바깥에서, 딕셔너리를 통해, 각각의 이름에 대한 인스턴스 생성
 # 분류 가능한 이름들
+# 기준값 (전역변수)
+
+TH_release = 1 # 100 %
+rec_pause = 0
+
+# 가장 바깥에서, 딕셔너리를 통해, 각각의 이름에 대한 인스턴스 생성
+# 기준값
+TH_of_confidence = 0.6
+TH_of_Movement = 0.1
+
+# 분류 가능한 이름들
 names = ["Song_GH", "Kim_JW", "Choi_EH"]
 names_detected = []
 
 # 각 이름들로 찾을 수 있는 speak_utils의 인스턴스의 딕셔너리 생성
-man = {name: speak_utils(name) for name in names}
-
-# 기준값 (전역변수)
-TH_of_confidence = 0.7
-TH_of_Movement = 0.03
-TH_release = 1 # 100 %
-FRAMES = 1
-rec_pause = 0
+man = {name: speak_utils(name, TH_of_Movement) for name in names}
 
 # 시간 동기화
-First_time = getTime(pytime())
+First_time = getTime(pytime(), reftime)
 for key in names:
     man[key].time1 = getTime(pytime(), reftime)
 #####################################################################
@@ -156,31 +160,20 @@ while True:
                 # 미분 전에 미리 해줘야 할 것들
                 detection_time = getTime(pytime(), reftime)
                 man[name].calculate_self(detection_time) # 몇 번째 반복중인지 전달
-                print("측정 누적횟수:", man[name].loop)
 
                 # 미분 함수 호출
                 # time2 - time1에 대해, specific_value의 변화 계산
                 # self.Mouth_movement에 반영
                 # 계산시  time1 초기화
-                man[name].timeset = man[name].differential(0.3, 2)
+                man[name].differential(0.3, 2)
 
     # 직전의 검출 결과의 업데이트를 반영해서
     #print(TOTAL_SUB.items())
     # 만들어줘야 할 변수: starx-endy,
     if detections.shape[2] > 0:
         TOTAL_SUB_list = []
-        #### detection loop나오기 (while문과 동일 위치)
         for name in names_detected:
-            # 검출 안된 이름이 계속 쌓이는 문제 : time2-time1이 계속 0.2보다 작은 것
-            if man[name].timeset == True:
-                man[name].timeset = False
-                man[name].loop = 0
-                if man[name].Mouth_movement > TH_of_Movement*TH_release:
-                    man[name].TOTAL_SUB += 1 + (man[name].Mouth_movement/TH_of_Movement)
-                TOTAL_SUB_list.append(man[name].TOTAL_SUB)
-            else:
-                man[name].loop += 1
-                # 역치값과 비교
+            TOTAL_SUB_list.append(man[name].TOTAL_SUB)
         probability_list = []
         if sum(TOTAL_SUB_list) >= 1:
             for name in names_detected:
@@ -234,7 +227,6 @@ while True:
             cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (man[name].color_a, 255, man[name].color_b), 3)
             cv2.putText(frame, text, (x-160, y-130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
             cv2.putText(frame, t2, (x-130, y-100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-
         names_detected = []
     ###############################################################
     # update the FPS counter
