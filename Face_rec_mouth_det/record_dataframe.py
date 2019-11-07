@@ -38,6 +38,7 @@ names_detected = []
 
 # 각 이름들로 찾을 수 있는 speak_utils의 인스턴스의 딕셔너리 생성
 size_of_buffer = 200
+
 man = {name: speak_utils(name, size_of_buffer) for name in names}
 
 # 기준값
@@ -57,7 +58,6 @@ for key in names:
 
 # In[4]:
 
-
 # <editor-fold>
 #region
 
@@ -69,11 +69,6 @@ PATH_le = 'output/le.pickle'
 # grab the indexes of the facial landmarks for the left and
 outmark_start, outmark_end = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
 inmark_start, inmark_end = face_utils.FACIAL_LANDMARKS_IDXS["inner_mouth"]
-
-# initialize the video stream and allow the cammera sensor to warmup
-print("[INFO] camera sensor warming up...")
-vs = VideoStream().start()
-time.sleep(1.0)
 
 # load our serialized face detector from disk
 print("[INFO] loading face detector...")
@@ -174,35 +169,13 @@ while True:
                 # self.inmarks, self.outmarks, self.midmark 값이 부여됨
                 man[name].landmark(gray, startX, startY, endX, endY)
 
-                # 시간 미분 구하기 - 클래스 함수로
-
                 # 미분 전에 미리 해줘야 할 것들=
                 detection_time = getTime(pytime(), reftime)
-                man[name].calculate_self(detection_time, (man[name].loop,1)) # 몇 번째 반복중인지 전달
-                print("측정 횟수:", man[name].loop)
+                man[name].calculate_self(detection_time) # 몇 번째 반복중인지 전달
                 # 미분 함수 호출
-                # time2 - time1에 대해, specific_value의 변화 계산
-                # self.Mouth_movement에 반영
-                # 이 부분에 if loopnumber조건 추가 가능
-                # 계산시 True가 되어 while문에서 time1 초기화
-                man[name].timeset = man[name].differential(100, 2) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
-                ''' 1초 기준, 혼자있을 때, timeloop는 0 - 9 까지 증가
-                    0.5 혼자 4까지
-                    timeloop reset될 떄마다 numpy도 리셋해야함
-                '''
-                # 역치값과 비교
-                if man[name].Mouth_movement > TH_of_Movement:
-                    man[name].TOTAL_SUB += 1*int(man[name].Mouth_movement/TH_of_Movement)
+                man[name].timeset = man[name].differential(100, 2)
 
         #### detection loop나오기 (while문과 동일 위치)
-        for name in names_detected:
-            # 검출 안된 이름이 계속 쌓이는 문제
-            if man[name].timeset == True:
-                #man[name].time1 = getTime(pytime(), reftime)
-                man[name].timeset = False
-                man[name].loop = 0
-            else:
-                man[name].loop += 1
         ######################출력값 지정##############################
         #print(TOTAL_SUB.items())
         # 만들어줘야 할 변수: starx-endy,
@@ -240,27 +213,31 @@ while True:
         # First_time = Last_time
         rec_time_limit = 0
         name = "Song_GH"
-        if man[name].loop > 50:
-            recorded_data = pd.DataFrame(
-                OrderedDict([
-                    ('Name', np.full((size_of_buffer, 1), man[name].name).flatten()),
-                    ('Label', np.full((size_of_buffer, 1), datalabel).flatten()),
-                    ('system_time', np.full((size_of_buffer, 1), datetime.now).flatten()),
-                    ('record_time', man[name].specific_values[:,0].flatten()),
-                    ('InnerMAR', man[name].specific_values[:,1].flatten()),
-                    ('0-6', man[name].specific_values[:,2].flatten())
-                ])
-            )
-            print("record finish\n#########################\n", recorded_data)
-            # recorded_data.to_pickle("output/recorded_mouth_data.pickle")
-            if input("이번 데이터를 저장하시겠습니까? (y/n) ") == "y":
-                metadata = pd.read_pickle('output/recorded_mouth_data.pickle')
-                print("[INFO] Read DataFrame from pickle...")
-                metadata = metadata.append(recorded_data)
-                # metadata.to_pickle("output/recorded_mouth_data" + str(datetime.now)+ ".pickle")
-                metadata.to_pickle("output/recorded_mouth_data.pickle")
-                print("[INFO] Data is saved in pickle...")
-                # 데이터 인덱스를 저장 날짜로 할 수 있도록 할 것
+
+        # if man[name].loop > 50:
+        recorded_data = pd.DataFrame(
+            OrderedDict([
+                ('Name', np.full((size_of_buffer, 1), man[name].name).flatten()),
+                ('Label', np.full((size_of_buffer, 1), datalabel).flatten()),
+                ('system_time', np.full((size_of_buffer, 1), datetime.now).flatten()),
+                ('record_time', man[name].specific_values[:,0].flatten()),
+                ('InnerMAR', man[name].specific_values[:,1].flatten()),
+                ('0-6', man[name].specific_values[:,2].flatten())
+            ])
+        )
+        print("record finish\n#########################\n", recorded_data)
+        # recorded_data.to_pickle("output/recorded_mouth_data.pickle")
+        if input("이번 데이터를 저장하시겠습니까? (y/n) ") == "y":
+            fname = input("파일 이름을 입력하세요: ") + ".pickle"
+            fpath = os.path.join("output", fname )
+            metadata = pd.read_pickle(fpath)
+            # output/recorded_mouth_data.pickle'
+            print("[INFO] Read DataFrame from pickle...")
+            metadata = metadata.append(recorded_data)
+            # metadata.to_pickle("output/recorded_mouth_data" + str(datetime.now)+ ".pickle")
+            metadata.to_pickle(fpath)
+            print("[INFO] Data is saved in pickle...")
+            # 데이터 인덱스를 저장 날짜로 할 수 있도록 할 것
     ###############################################################
     # wait for key in terminal
     key = input("press 's' for speaking, 'n' for nonspeaking, 'q' for quit: \n")
