@@ -3,7 +3,6 @@
 
 # In[1]:
 
-
 # import the necessary packages
 from scipy.spatial import distance as dist
 from imutils.video import FileVideoStream
@@ -39,8 +38,6 @@ names_detected = []
 # 각 이름들로 찾을 수 있는 speak_utils의 인스턴스의 딕셔너리 생성
 size_of_buffer = 200
 
-man = {name: speak_utils(name, size_of_buffer) for name in names}
-
 # 기준값
 TH_of_confidence = 0.6
 TH_of_Movement = 0.6
@@ -51,8 +48,6 @@ datalabel = ""
 # 시간 동기화
 reftime = getTime(pytime())
 First_time = getTime(pytime())
-for key in names:
-    man[key].time1 = getTime(pytime(), reftime)
 ####################################################################
 
 
@@ -99,6 +94,32 @@ fps = FPS().start()
 
 # loop over frames from the video file stream
 while True:
+    # wait for key in terminal
+    key = input("press 's' for speaking, 'n' for nonspeaking, 'q' for quit: \n")
+    # if the `q` key was pressed, break from the loop
+    if key == "q":
+        print("program finished")
+        break
+    elif key == "s":
+        # 앞으로 20초간 인식하도록 셋팅
+        First_time = getTime(pytime())
+        rec_time_limit = np.float64(10.0)
+        print("rec_time_limit:", rec_time_limit)
+        reftime = getTime(pytime())
+        datalabel = "speaking"
+        man = {name: speak_utils(name, buffersize = size_of_buffer) for name in names}
+        for key in names:
+            man[key].time1 = getTime(pytime(), reftime)
+    elif key == "n":
+        # 앞으로 20초간 인식하도록 셋팅
+        First_time = getTime(pytime())
+        rec_time_limit = np.float64(10.0)
+        reftime = getTime(pytime())
+        datalabel = "nonspeaking"
+        man = {name: speak_utils(name, buffersize = size_of_buffer) for name in names}
+        for key in names:
+            man[key].time1 = getTime(pytime(), reftime)
+
     while getTime(pytime(), First_time) < rec_time_limit:
         print("del_time:", getTime(pytime(), First_time))
         # <editor-fold>
@@ -173,8 +194,8 @@ while True:
                 detection_time = getTime(pytime(), reftime)
                 man[name].calculate_self(detection_time) # 몇 번째 반복중인지 전달
                 # 미분 함수 호출
-                man[name].timeset = man[name].differential(100, 2)
-
+                #man[name].differential(100, 1) # loop를 올리기만 하는 역할
+                man[name].loop += 1
         #### detection loop나오기 (while문과 동일 위치)
         ######################출력값 지정##############################
         #print(TOTAL_SUB.items())
@@ -222,44 +243,30 @@ while True:
                 ('system_time', np.full((size_of_buffer, 1), datetime.now).flatten()),
                 ('record_time', man[name].specific_values[:,0].flatten()),
                 ('InnerMAR', man[name].specific_values[:,1].flatten()),
-                ('0-6', man[name].specific_values[:,2].flatten())
+                ('outter_width', man[name].specific_values[:,2].flatten())
             ])
         )
         print("record finish\n#########################\n", recorded_data)
         # recorded_data.to_pickle("output/recorded_mouth_data.pickle")
         if input("이번 데이터를 저장하시겠습니까? (y/n) ") == "y":
+            print("/output 파일 목록:\n ", os.listdir(os.getcwd()+"/output") )
             fname = input("파일 이름을 입력하세요: ") + ".pickle"
             fpath = os.path.join("output", fname )
-            metadata = pd.read_pickle(fpath)
+            try:
+                metadata = pd.read_pickle(fpath)
+                print("[INFO] Read DataFrame from pickle...")
+                metadata = metadata.append(recorded_data)
+                # metadata.to_pickle("output/recorded_mouth_data" + str(datetime.now)+ ".pickle")
+                metadata.to_pickle(fpath)
+                print("[INFO] Data is saved in pickle...")
+            except:
+                print("[INFO] 기존 파일이 존재하지 않아, 새로 생성합니다")
+                recorded_data.to_pickle(fpath)
             # output/recorded_mouth_data.pickle'
-            print("[INFO] Read DataFrame from pickle...")
-            metadata = metadata.append(recorded_data)
-            # metadata.to_pickle("output/recorded_mouth_data" + str(datetime.now)+ ".pickle")
-            metadata.to_pickle(fpath)
-            print("[INFO] Data is saved in pickle...")
+
             # 데이터 인덱스를 저장 날짜로 할 수 있도록 할 것
     ###############################################################
-    # wait for key in terminal
-    key = input("press 's' for speaking, 'n' for nonspeaking, 'q' for quit: \n")
-    # if the `q` key was pressed, break from the loop
-    if key == "q":
-        print("program finished")
-        break
-    elif key == "s":
-        # 앞으로 20초간 인식하도록 셋팅
-        First_time = getTime(pytime())
-        rec_time_limit = np.float64(10.0)
-        print("rec_time_limit:", rec_time_limit)
-        reftime = getTime(pytime())
-        datalabel = "speaking"
-        man = {name: speak_utils(name, size_of_buffer) for name in names}
-    elif key == "n":
-        # 앞으로 20초간 인식하도록 셋팅
-        First_time = getTime(pytime())
-        rec_time_limit = np.float64(10.0)
-        reftime = getTime(pytime())
-        datalabel = "nonspeaking"
-        man = {name: speak_utils(name, size_of_buffer) for name in names}
+
 # stop the timer and display FPS information
     fps.stop()
 
