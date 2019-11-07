@@ -25,7 +25,7 @@ class speak_utils:
     '''대화 중인 사람의 얼굴에서 관측되는 특징값을 저장하는 변수들과
     분석하는 함수를 가진 클래스'''
     # 생성자
-    def __init__(self, name, TH, buffersize = 20):
+    def __init__(self, name, TH=0, buffersize = 20):
         self.TH_of_Movement = TH
         self.name = name
         self.buffersize = buffersize
@@ -230,7 +230,7 @@ class speak_utils:
         # 계산함수 호출
         self.innermouth_aspect_ratio() # self.imar
         self.outtermouth_distfactor() # self.A,B,C..
-        
+
         # update_specific_value
         self.specific_values[self.loop,:6] = [self.time2, self.imar,
             self.OB, self.OC, self.OD, self.OF]
