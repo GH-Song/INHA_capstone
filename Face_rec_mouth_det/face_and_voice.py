@@ -38,7 +38,7 @@ CHUNK = 1024
 RECORD_SECONDS = 2
 
 # 마이크 켜짐 여부
-mic_on = False
+# mic_on = False
 
 # 녹음된 문장
 recorded_words = ""
@@ -275,6 +275,8 @@ while True:
                         # 화자임을 표시
                         man[name].color_a = 50
                         man[name].color_b = 50
+                        # 네모 상자에 들어갈 말
+                        # man[name].sayingwords = recorded_words 
                         First_time = getTime(pytime(), reftime)
                     else:
                         man[name].refresh("color")
