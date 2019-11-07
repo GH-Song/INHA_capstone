@@ -22,25 +22,27 @@ import wave
 #import make_wavfile
 #from make_wavfile import audio_recording
 
-# pyaudio를 사용하여 음성 데이터를 받고 wav로 파일을 저장해주는 코드
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 16000
-
-# 1024개의 샘플을 한 덩어리로 보고 잡음인지 음성인지 판단하는 것임
-CHUNK = 1024
-RECORD_SECONDS = 2
-
-# 음성 파일 이름 지정. 나중에 실시간으로 바꾸거나 데이터를 따로 저장 할 것임.
-WAVE_OUTPUT_FILENAME = "file.wav"
-
 reftime = pytime()
 def getTime(s, referencetime = 0):
     ss = s / 1 - referencetime
     return ss
 
 ########################실행시 고려할 부분########################
-# 가장 바깥에서, 딕셔너리를 통해, 각각의 이름에 대한 인스턴스 생성
+# pyaudio를 사용하여 음성 데이터를 받고 wav로 파일을 저장
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 16000
+
+# 1024개의 샘플을 한 덩어리로 보고 잡음인지 음성인지 판단
+CHUNK = 1024
+RECORD_SECONDS = 2
+
+# 마이크 켜짐 여부
+mic_on = False
+
+# 녹음된 문장
+recorded_words = ""
+
 # 기준값
 TH_of_confidence = 0.6
 TH_of_Movement = 0.1
@@ -49,20 +51,21 @@ TH_of_Movement = 0.1
 names = ["Song_GH", "Kim_JW", "Choi_EH"]
 names_detected = []
 
-# 각 이름들로 찾을 수 있는 speak_utils의 인스턴스의 딕셔너리 생성
-man = {name: speak_utils(name, TH_of_Movement) for name in names}
-
-# 시간 동기화
-First_time = getTime(pytime(), reftime)
-for key in names:
-    man[key].time1 = getTime(pytime(), reftime)
+# 프로그램 동작 여부
+program_on = False
 #####################################################################
 
 # <editor-fold>
-#region
+
+# 음성인식 기본값
+openApiURL = "http://aiopen.etri.re.kr:8000/WiseASR/Recognition"
+accessKey = "210b1585-4ab9-46e3-9f94-5f0d0ca5d293"
+# audioFilePath = "C:/Users/GHsong/Projectfiles/INHA_capstone/Face_rec_mouth_det/file.wav"
+languageCode = "korean"
+# 음성 파일 이름 지정. 나중에 실시간으로 바꾸거나 데이터를 따로 저장 할 것임.
+WAVE_OUTPUT_FILENAME = "output/short_record.wav"
 
 # 파일 및 폴더 경로 지정
-
 PATH_facedetection='face_detection_model'
 PATH_recognizer = 'output/recognizer.pickle'
 PATH_le = 'output/le.pickle'
@@ -87,60 +90,65 @@ le = pickle.loads(open(PATH_le, "rb").read())
 
 # start the FPS throughput estimator
 fps = FPS().start()
-#endregion
 # </editor-fold>
 
 
 
-# 만들어진 wav 파일을 바로 음성 인식을 통해 텍스트로 변환해줌
-openApiURL = "http://aiopen.etri.re.kr:8000/WiseASR/Recognition"
-accessKey = "210b1585-4ab9-46e3-9f94-5f0d0ca5d293"
-audioFilePath = "C:/SongsProjectfiles/INHA_capstone/Face_rec_mouth_det/file.wav"
-
-languageCode = "korean"
-
-
-
-mic_on = False
-recorded_words = ""
 # loop over frames from the video file stream
 while True:
-    on_air = False
     # wait for key in terminal
     key = input("press 's' for start, 'o' to change options, 'q' for quit: \n")
     # if the `q` key was pressed, break from the loop
+
     if key == "q":
         print("program finished")
         break
+
     elif key == "s":
-        on_air = True
+        program_on = True
         # initialize the video stream, then allow the camera sensor to warm up
         print("[INFO] starting video stream...")
         vs = VideoStream(src=0).start()
         time.sleep(1.0)
-        First_time = getTime(pytime(), reftime)
-    elif key == "o":
-        print("[INFO] 현재 TH_of_Movement: ", TH_of_Movement)
-        value = input("TH_of_Movement 조정: ")
-        TH_of_Movement = float(value)
-        man = {name: speak_utils(name, TH_of_Movement) for name in names}
-        on_air = False
 
-    while on_air == True:
+        # 마이크 녹음 초기화
+        print("recording...")
+        audio = pyaudio.PyAudio()
+        audiostream = audio.open(format=pyaudio.paInt16, channels=CHANNELS, rate=RATE, input=True, input_device_index=1, frames_per_buffer=CHUNK)
+        audioframe = []
+
+        # 사람 객체 생성
+        man = {name: speak_utils(name, TH_of_Movement) for name in names}
+
+        # 시간 동기화
+        reftime = pytime()
+        First_time = getTime(pytime(), reftime)
+        for key in names:
+            man[key].time1 = getTime(pytime(), reftime)
+
+    elif key == "o":
+        program_on = False
+        print("[INFO] 현재 TH_of_Movement: ", TH_of_Movement)
+        TH_of_Movement = float(input("TH_of_Movement 조정: "))
+
+    while program_on == True:
         # grab the frame from the threaded video stream
         frame = vs.read()
-
-        # resize the frame to have a width of 600 pixels (while
-        # maintaining the aspect ratio), and then grab the image
-        # dimensions
+        # resize the frame to have a width of 600 pixels
         frame = imutils.resize(frame, width=600)
+        # make gray frame
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # dimensions
         (h, w) = frame.shape[:2]
 
         # construct a blob from the image
         imageBlob = cv2.dnn.blobFromImage(
             cv2.resize(frame, (300, 300)), 1.0, (300, 300),
             (104.0, 177.0, 123.0), swapRB=False, crop=False)
+
+        # 음성녹음
+        data = audiostream.read(CHUNK)
+        audioframe.append(data)
 
         # apply OpenCV's deep learning-based face detector to localize
         # faces in the input image
@@ -199,39 +207,31 @@ while True:
                     # time2 - time1에 대해, specific_value의 변화 계산
                     # self.Mouth_movement에 반영
                     # 계산 성공시 time1 초기화
-                    man[name].differential(0.25, 1) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
-                    ''' 1초 기준, 혼자있을 때, timeloop는 0 - 9 까지 증가
-                        0.5 혼자 4까지
-                        timeloop reset될 떄마다 numpy도 리셋해야함
-                        역치값과 스스로 비교
-                    '''
-        #### detection loop나오기 (while문과 동일 위치)
+                    man[name].differential(0.25, 2) # time2 - time1이 0.01보다 큰지 고려해서 실행됨=
 
+        #### detection loop나오기 (while문과 동일 위치)
         # 직전의 검출 결과의 업데이트를 반영해서
         # 이름 기준으로 반복
         Last_time = getTime(pytime(), reftime)
 
         # 2초동안 들린 소리가 누구 것에 가까운지 판단
-        if (Last_time - First_time) > 6 and mic_on == True:
-            ''' 이 시간을 초기화 하기 전에, 말을 한 사람에게 추가적인 시간을 더 주자.
-                혹은 이 시간 자체를 없애고, 이전에 말을 한 사람이 검출된 시점을 기준으로 하자'''
+        if (Last_time - First_time) > 3:
+            #for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
 
-                #for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
             print("finished recording")
             # stop Recording
-            stream.stop_stream()
-            stream.close()
-            audio.terminate()
+
             waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
             waveFile.setnchannels(CHANNELS)
             waveFile.setsampwidth(audio.get_sample_size(FORMAT))
             waveFile.setframerate(RATE)
-            waveFile.writeframes(b''.join(frames))
+            waveFile.writeframes(b''.join(audioframe))
             waveFile.close()
+            audioframe = []
 
-            file = open(audioFilePath, "rb")
-            audioContents = base64.b64encode(file.read()).decode("utf8")
-            file.close()
+            with open(WAVE_OUTPUT_FILENAME, "rb") as f:
+                audioContents = base64.b64encode(f.read()).decode("utf8")
+            # os.remove(WAVE_OUTPUT_FILENAME)
 
             requestJson = {
                 "access_key": accessKey,
@@ -255,7 +255,7 @@ while True:
             print("[responBody]")
             print(data)
             recorded_words = str(data)
-            mic_on = False
+
             # 이전 검사 완료 이후 x초가 지났으면
             TOTAL_SUB_list = []
             # 모든 사람 인스턴스가 가진 self.TOTAL_SUB값을 리스트로 추출
@@ -275,7 +275,6 @@ while True:
                         # 화자임을 표시
                         man[name].color_a = 50
                         man[name].color_b = 50
-
                         First_time = getTime(pytime(), reftime)
                     else:
                         man[name].refresh("color")
@@ -284,17 +283,6 @@ while True:
                 for name in names:
                     man[name].refresh("color")
 
-        elif (Last_time - First_time) < 6 and mic_on == False:
-            print("recording...")
-            audio = pyaudio.PyAudio()
-            # start Recording
-            stream = audio.open(format=pyaudio.paInt16, channels=CHANNELS, rate=RATE, input=True, input_device_index=1, frames_per_buffer=CHUNK)
-            frames = []
-            mic_on = True
-
-        elif (Last_time - First_time) < 6 and mic_on == True:
-            data = stream.read(CHUNK)
-            frames.append(data)
         ######################출력값 지정##############################
         #print(TOTAL_SUB.items())
         # 만들어줘야 할 변수: starx-endy,
@@ -331,5 +319,8 @@ while True:
         if key == ord("q"):
             vs.stop()
             cv2.destroyAllWindows()
+            audiostream.stop_stream()
+            audiostream.close()
+            audio.terminate()
             break
 fps.stop()

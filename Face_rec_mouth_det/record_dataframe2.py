@@ -26,6 +26,7 @@ from datetime import datetime
 
 # In[2]:
 
+
 def getTime(s, referencetime = 0):
     ss = s / 1 - referencetime
     return np.float64(ss)
@@ -40,16 +41,11 @@ size_of_buffer = 200
 
 # 기준값
 TH_of_confidence = 0.6
-TH_of_Movement = 0.6
+TH_of_Movement = 0.1
 FRAMES = 1
 rec_time_limit = 0 # 1회 측정시간 부여 시 사용
 datalabel = ""
-
-# 시간 동기화
-reftime = getTime(pytime())
-First_time = getTime(pytime())
 ####################################################################
-
 
 # In[4]:
 
@@ -101,27 +97,37 @@ while True:
         print("program finished")
         break
     elif key == "s":
-        # 앞으로 20초간 인식하도록 셋팅
+        # 시간 동기화
         First_time = getTime(pytime())
+        reftime = getTime(pytime())
+
+        # 앞으로 10초간 인식하도록 셋팅
         rec_time_limit = np.float64(10.0)
         print("rec_time_limit:", rec_time_limit)
-        reftime = getTime(pytime())
+
+        # 데이터 라벨 지정
         datalabel = "speaking"
+
+        # 객체 생성
         man = {name: speak_utils(name, buffersize = size_of_buffer) for name in names}
         for key in names:
             man[key].time1 = getTime(pytime(), reftime)
+            
     elif key == "n":
-        # 앞으로 20초간 인식하도록 셋팅
+        # 시간 동기화
         First_time = getTime(pytime())
-        rec_time_limit = np.float64(10.0)
         reftime = getTime(pytime())
+
+        # 앞으로 10초간 인식하도록 셋팅
+        rec_time_limit = np.float64(10.0)
+        # 데이터 라벨 지정
         datalabel = "nonspeaking"
         man = {name: speak_utils(name, buffersize = size_of_buffer) for name in names}
         for key in names:
             man[key].time1 = getTime(pytime(), reftime)
 
     while getTime(pytime(), First_time) < rec_time_limit:
-        print("del_time:", getTime(pytime(), First_time))
+        print("흐른 시간:", getTime(pytime(), First_time))
         # <editor-fold>
         # grab the frame from the threaded video stream
         frame = vs.read()
@@ -192,10 +198,9 @@ while True:
 
                 # 미분 전에 미리 해줘야 할 것들=
                 detection_time = getTime(pytime(), reftime)
-                man[name].calculate_self(detection_time) # 몇 번째 반복중인지 전달
+                man[name].calculate_self(detection_time, option=1) # 몇 번째 반복중인지 전달
                 # 미분 함수 호출
-                #man[name].differential(100, 1) # loop를 올리기만 하는 역할
-                man[name].loop += 1
+                man[name].differential(0.3, 1) # loop를 올리기만 하는 역할
         #### detection loop나오기 (while문과 동일 위치)
         ######################출력값 지정##############################
         #print(TOTAL_SUB.items())
@@ -219,7 +224,6 @@ while True:
                 cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (man[name].color_a, 255, man[name].color_b), 3)
                 cv2.putText(frame, text, (x-160, y-130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
                 cv2.putText(frame, t2, (x-130, y-100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-
             names_detected = []
         # show the frame
         fps.update()
@@ -240,12 +244,19 @@ while True:
             OrderedDict([
                 ('Name', np.full((size_of_buffer, 1), man[name].name).flatten()),
                 ('Label', np.full((size_of_buffer, 1), datalabel).flatten()),
-                ('system_time', np.full((size_of_buffer, 1), datetime.now).flatten()),
                 ('record_time', man[name].specific_values[:,0].flatten()),
                 ('InnerMAR', man[name].specific_values[:,1].flatten()),
-                ('outter_width', man[name].specific_values[:,2].flatten())
+                ('outter_width', man[name].specific_values[:,2].flatten()),
+                ('system_time', np.full((size_of_buffer, 1), datetime.now).flatten())
             ])
         )
+        #pd.set_option('display.max_colwidth', -1)
+        # 최대 줄 수 설정
+        pd.set_option('display.max_rows', 500)
+        # 최대 열 수 설정
+        pd.set_option('display.max_columns', 500)
+        # 표시할 가로의 길이
+        pd.set_option('display.width', 1000)
         print("record finish\n#########################\n", recorded_data)
         # recorded_data.to_pickle("output/recorded_mouth_data.pickle")
         if input("이번 데이터를 저장하시겠습니까? (y/n) ") == "y":

@@ -15,11 +15,9 @@ import speakutils
 from speakutils import speak_utils
 from time import time as pytime
 
-reftime = pytime()
 def getTime(s, referencetime = 0):
     ss = s / 1 - referencetime
     return ss
-
 ########################실행시 고려할 부분########################
 # 가장 바깥에서, 딕셔너리를 통해, 각각의 이름에 대한 인스턴스 생성
 # 기준값
@@ -32,11 +30,6 @@ names_detected = []
 
 # 각 이름들로 찾을 수 있는 speak_utils의 인스턴스의 딕셔너리 생성
 man = {name: speak_utils(name, TH_of_Movement) for name in names}
-
-# 시간 동기화
-First_time = getTime(pytime(), reftime)
-for key in names:
-    man[key].time1 = getTime(pytime(), reftime)
 #####################################################################
 
 # <editor-fold>
@@ -73,31 +66,38 @@ fps = FPS().start()
 
 # loop over frames from the video file stream
 while True:
-    on_air = False
+    program_on = False
     # wait for key in terminal
     key = input("press 's' for start, 'o' to change options, 'q' for quit: \n")
     # if the `q` key was pressed, break from the loop
+
     if key == "q":
         print("program finished")
         break
+
     elif key == "s":
-        on_air = True
+        program_on = True
         # initialize the video stream, then allow the camera sensor to warm up
         print("[INFO] starting video stream...")
         vs = VideoStream(src=0).start()
         time.sleep(1.0)
+        # 시간 동기화
+        reftime = pytime()
+        First_time = getTime(pytime(), reftime)
+        for key in names:
+            man[key].time1 = getTime(pytime(), reftime)
+
     elif key == "o":
+        program_on = False
         print("[INFO] 현재 TH_of_Movement: ", TH_of_Movement)
         value = input("TH_of_Movement 조정: ")
         TH_of_Movement = float(value)
         man = {name: speak_utils(name, TH_of_Movement) for name in names}
-        on_air = False
 
-    while on_air == True:
+    while program_on == True:
         # grab the frame from the threaded video stream
         frame = vs.read()
-        # resize the frame to have a width of 600 pixels (while
-        # maintaining the aspect ratio), and then grab the image
+        # resize the frame to have a width of 600 pixels
         # dimensions
         frame = imutils.resize(frame, width=600)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

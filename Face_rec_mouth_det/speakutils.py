@@ -31,19 +31,15 @@ class speak_utils:
         self.buffersize = buffersize
         self.TOTAL_SUB = 0
         self.color_a = 255; self.color_b = 255
-        t = np.ones((self.buffersize,1), dtype = np.float64)/10000
-        v = np.zeros((self.buffersize,7), dtype = np.float64)
-        self.specific_values = np.concatenate((t,v), axis=1)
+        self.specific_values = np.zeros((self.buffersize,7), dtype = np.float64)
         self.time1 = 0; self.time2 = 0
         self.Mouth_movement = 0
         self.sx = 0; self.sy = 0; self.ex = 0; self.ey = 0
-        self.Inmarks = []
-        self.Outmarks = []
-        self.Midmark = []
-        self.timeset = True
+        self.Inmarks = []; self.Outmarks = []; self.Midmark = []
         self.loop = 0
         self.probability = 0
         self.face_area = 0
+        self.buf_top = 0
         print(self.name+"'s class is created")
 
     # 검출된 얼굴 세부 부위 좌표를 저장
@@ -166,12 +162,11 @@ class speak_utils:
         self.specific_values[row,:6] = [self.time2, self.imar, self.OB, self.OC, self.OD, self.OF]
 
     # 미분 수행, Mouth_movement값을 계산
-    def differential(self, timeref, option):
+    def differential(self, timeref, option, disp= False):
         ''' timeref: 미분을 수행할 시간 간격, option: 계산방식'''
         if option == 1:
             if (self.time2 - self.time1) > timeref and self.loop > 0:
-                # 시간은 기준보다 지났으며, 측정횟수는 2회 이상인가
-                loop = self.loop
+                loop = self.buf_top + self.loop
                 max_index = loop + 1
 
                 # 시간 변화량 계산
@@ -184,6 +179,12 @@ class speak_utils:
                 dev_values = del_values/del_t
                 total_dev = np.sum(abs(dev_values), axis=0).flatten() # 열 끼리 덧셈
 
+                # 시간은 기준보다 지났으며, 측정횟수는 2회 이상인가
+                print("---------", self.name, "의 미분결과--------")
+                print("측정 누적횟수:", self.loop)
+                print("시간변화:", del_t)
+                print("값 변화:", del_values)
+
                 # Mouth_movement 계산
                 self.Mouth_movement = np.sum(total_dev)*100/self.face_area/max_index
                 self.Mouth_movement += self.specific_values[:max_index,1].mean()
@@ -191,9 +192,7 @@ class speak_utils:
                 # 시간 동기화
                 self.time1 = self.time2
                 # 버퍼 초기화
-                t = np.ones((self.buffersize,1), dtype = np.float64)/10000
-                v = np.zeros((self.buffersize,7), dtype = np.float64)
-                self.specific_values = np.concatenate((t,v), axis=1) # 행 방향
+                #self.specific_values = np.zeros((self.buffersize,7), dtype = np.float64)
                 # 반복 횟수를 나타내는 값 초기화
                 self.loop = 0
             else:
@@ -216,10 +215,6 @@ class speak_utils:
 
                 # 값 변화량 계산
                 del_values = np.diff(self.specific_values[:max_index,1:6], axis = 0) # 열 끼리 뺄셈
-                print("---------", self.name, "의 미분결과--------")
-                print("측정 누적횟수:", self.loop)
-                print("시간변화:", del_t)
-                print("값 변화:", del_values)
 
                 # 시간에 따른 값 변화율 계산
                 dev_values = del_values/del_t
@@ -227,16 +222,21 @@ class speak_utils:
 
                 # Mouth_movement 계산
                 self.Mouth_movement = np.sum(total_dev)*100/self.face_area/max_index
-                print("dev:", self.Mouth_movement/ (max_index+1))
+
                 self.Mouth_movement += self.specific_values[:max_index,1].mean()
-                print("mean imar:", self.specific_values[:max_index,1].mean())
+
+                if disp == True:
+                    print("---------", self.name, "의 미분결과--------")
+                    print("측정 누적횟수:", self.loop)
+                    print("시간변화:", del_t)
+                    print("값 변화:", del_values)
+                    print("dev:", self.Mouth_movement/ (max_index+1))
+                    print("mean imar:", self.specific_values[:max_index,1].mean())
 
                 # 시간 동기화
                 self.time1 = self.time2
                 # 버퍼 초기화
-                t = np.ones((self.buffersize,1), dtype = np.float64)/10000
-                v = np.zeros((self.buffersize,7), dtype = np.float64)
-                self.specific_values = np.concatenate((t,v), axis=1) # 행 방향
+                self.specific_values = np.zeros((self.buffersize,7), dtype = np.float64)
                 # 반복 횟수를 나타내는 값 초기화
                 self.loop = 0
             else:
@@ -246,16 +246,18 @@ class speak_utils:
             # 역치값과 비교
             if self.Mouth_movement > self.TH_of_Movement:
                 self.TOTAL_SUB += 1*int(self.Mouth_movement/self.TH_of_Movement)
-                print("Upper than threshold")
-                print("------------------------------------")
+                if disp == True:
+                    print("Upper than threshold")
+                    print("------------------------------------")
             else:
-                print("Lower than threshold")
-                print("------------------------------------")
+                if disp == True:
+                    print("Lower than threshold")
+                    print("------------------------------------")
         else:
             return
 
     # imar, 입술 길이 등을 계산
-    def calculate_self(self, detection_time, printkey = (0,5)):
+    def calculate_self(self, detection_time, printkey = (0,5), option = 0):
         """ printkey: ( 첫번째 index , 길이 ) """
         # 함수가 호출된 시간 저장
         self.time2 = detection_time
@@ -265,9 +267,14 @@ class speak_utils:
         self.outtermouth_distfactor() # self.A,B,C..
 
         # update_specific_value
-        self.specific_values[self.loop,:6] = [self.time2, self.imar,
-            self.OB, self.OC, self.OD, self.OF]
-
+        if option == 0:
+            self.specific_values[self.loop,:6] = [self.time2, self.imar,
+                self.OB, self.OC, self.OD, self.OF]
+        elif option == 1:
+            if self.buf_top < self.buffersize:
+                self.specific_values[self.buf_top,:6] = [self.time2, self.imar,
+                    self.OB, self.OC, self.OD, self.OF]
+                self.buf_top += 1
         # 터미널 출력
         p = lambda f, s: print(self.name, "의 값:\n", self.specific_values[f:f+s,:6])
         # p(printkey[0], printkey[1])
