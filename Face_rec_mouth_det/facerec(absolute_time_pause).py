@@ -147,7 +147,8 @@ while True:
 
                 # 미분 전에 미리 해줘야 할 것들
                 detection_time = getTime(pytime(), reftime)
-                man[name].calculate_self(detection_time) # 몇 번째 반복중인지 전달
+                # specific values, time2 update
+                man[name].calculate_self(detection_time)
 
                 # 미분 함수 호출
                 # time2 - time1에 대해, specific_value의 변화 계산
