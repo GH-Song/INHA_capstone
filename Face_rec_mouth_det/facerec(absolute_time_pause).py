@@ -22,17 +22,16 @@ def getTime(s, referencetime = 0):
 
 ########################실행시 고려할 부분########################
 # 가장 바깥에서, 딕셔너리를 통해, 각각의 이름에 대한 인스턴스 생성
+# 기준값
+TH_of_confidence = 0.6
+TH_of_Movement = 0.1
+
 # 분류 가능한 이름들
 names = ["Song_GH", "Kim_JW", "Choi_EH"]
 names_detected = []
 
 # 각 이름들로 찾을 수 있는 speak_utils의 인스턴스의 딕셔너리 생성
-man = {name: speak_utils(name) for name in names}
-
-# 기준값
-TH_of_confidence = 0.6
-TH_of_Movement = 0.04
-FRAMES = 1
+man = {name: speak_utils(name, TH_of_Movement) for name in names}
 
 # 시간 동기화
 First_time = getTime(pytime(), reftime)
@@ -146,36 +145,22 @@ while True:
                 # self.inmarks, self.outmarks, self.midmark 값이 부여됨
                 man[name].landmark(gray, startX, startY, endX, endY)
 
-                # 시간 미분 구하기 - 클래스 함수로
-
                 # 미분 전에 미리 해줘야 할 것들
                 detection_time = getTime(pytime(), reftime)
-                man[name].calculate_self(detection_time) # 몇 번째 반복중인지 전달
-                print("측정 누적횟수:", man[name].loop)
+                # specific values, time2 update
+                man[name].calculate_self(detection_time)
 
                 # 미분 함수 호출
                 # time2 - time1에 대해, specific_value의 변화 계산
                 # self.Mouth_movement에 반영
-                # 이 부분에 if loopnumber조건 추가 가능
-                # 계산시 True가 되어 while문에서 time1 초기화
-
-                man[name].timeset = man[name].differential(0.2, 2) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
+                # 계산 성공시 time1 초기화
+                man[name].differential(0.25, 2) # time2 - time1이 0.01보다 큰지 고려해서 실행됨
                 ''' 1초 기준, 혼자있을 때, timeloop는 0 - 9 까지 증가
                     0.5 혼자 4까지
                     timeloop reset될 떄마다 numpy도 리셋해야함
+                    역치값과 스스로 비교
                 '''
-                # 역치값과 비교
-                if man[name].Mouth_movement > TH_of_Movement:
-                    man[name].TOTAL_SUB += 1*int(man[name].Mouth_movement/TH_of_Movement)
-
     #### detection loop나오기 (while문과 동일 위치)
-    for name in names_detected:
-        # 검출 안된 이름이 계속 쌓이는 문제 : time2-time1이 계속 0.2보다 작은 것
-        if man[name].timeset == True:
-            man[name].timeset = False
-            man[name].loop = 0
-        else:
-            man[name].loop += 1
 
     # 직전의 검출 결과의 업데이트를 반영해서
     # 이름 기준으로 반복
