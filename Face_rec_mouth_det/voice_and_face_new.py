@@ -41,6 +41,8 @@ RECORD_SECONDS = 2
 # 마이크 켜짐 여부
 # mic_on = False
 
+# 녹음 종료 인지
+finish = 0
 # 녹음된 문장
 recorded_words = ""
 
@@ -230,6 +232,7 @@ while True:
             # 화자 검출
             if sum(TOTAL_SUB_list) >= 1:
                 # 누군가 한번 이상 말을 했으면
+                finish = 0
                 for name in names_detected:
                 # 누가 가장 입을 많이 움직였는가 확인할 것
                     if man[name].TOTAL_SUB >= max(TOTAL_SUB_list):
@@ -250,43 +253,51 @@ while True:
                 # 아무도 말을 하지 않았으면
                 for name in names:
                     man[name].refresh("color")
-                print("finished recording")
+
+                # 계속해서 텍스트를 새로 받는 것보다 말이 끝날을 때만 데이터를 받아서 인식하게 만듬
+                if finish == 0 :
+                 print("finished recording")
                 # stop Recording
 
-                waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-                waveFile.setnchannels(CHANNELS)
-                waveFile.setsampwidth(audio.get_sample_size(FORMAT))
-                waveFile.setframerate(RATE)
-                waveFile.writeframes(b''.join(audioframe))
-                waveFile.close()
-                audioframe = []
+                 waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+                 waveFile.setnchannels(CHANNELS)
+                 waveFile.setsampwidth(audio.get_sample_size(FORMAT))
+                 waveFile.setframerate(RATE)
+                 waveFile.writeframes(b''.join(audioframe))
+                 waveFile.close()
+                 audioframe = []
 
-                with open(WAVE_OUTPUT_FILENAME, "rb") as f:
-                    audioContents = base64.b64encode(f.read()).decode("utf8")
+                 with open(WAVE_OUTPUT_FILENAME, "rb") as f:
+                     audioContents = base64.b64encode(f.read()).decode("utf8")
                 # os.remove(WAVE_OUTPUT_FILENAME)
 
-                requestJson = {
-                    "access_key": accessKey,
-                    "argument": {
-                        "language_code": languageCode,
-                        "audio": audioContents
-                    }
-                }
+                 requestJson = {
+                     "access_key": accessKey,
+                     "argument": {
+                         "language_code": languageCode,
+                         "audio": audioContents
+                     }
+                 }
 
-                http = urllib3.PoolManager()
-                response = http.request(
-                    "POST",
-                    openApiURL,
-                    headers={"Content-Type": "application/json; charset=UTF-8"},
-                    body=json.dumps(requestJson)
-                )
+                 http = urllib3.PoolManager()
+                 response = http.request(
+                     "POST",
+                     openApiURL,
+                     headers={"Content-Type": "application/json; charset=UTF-8"},
+                     body=json.dumps(requestJson)
+                 )
 
-                data = response.data
-                data = data.decode("utf-8")
-                print("[responseCode] " + str(response.status))
-                print("[responBody]")
-                print(datetime.now(), ': ', data)
-                recorded_words = str(data)
+                 finish = 1
+                 data = response.data
+                 data = data.decode("utf-8")
+                 print("[responseCode] " + str(response.status))
+                 print("[responBody]")
+                 print(datetime.now(), ': ', data)
+                 recorded_words = str(data)
+
+                 # 문제점 하나가 예상 되는 건 여러명에서 말을 할 때에 텍스트가 다른 사람한테 넘어가지는 않는 것일까가 궁금함
+                 # 말풍선 지속시간을 임의로 3초 지속하게 만듬 (텍스트가 유지되어야 하므로) 사실 텍스트를 업뎃 하지 않으면 유지가 알아서 되므로 필요없는 코드 같기도 함
+                 First_time = getTime(pytime(), reftime) + 2
 
 
         ######################출력값 지정##############################
