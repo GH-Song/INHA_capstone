@@ -40,6 +40,7 @@ class speak_utils:
         self.probability = 0
         self.face_area = 0
         self.buf_top = 0
+        self.sayingwords = ""
         print(self.name+"'s class is created")
 
     # 검출된 얼굴 세부 부위 좌표를 저장
