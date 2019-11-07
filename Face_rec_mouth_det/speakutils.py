@@ -169,8 +169,41 @@ class speak_utils:
     def differential(self, timeref, option):
         ''' timeref: 미분을 수행할 시간 간격, option: 계산방식'''
         if option == 1:
-            # 계산방식 1
-            return
+            if (self.time2 - self.time1) > timeref and self.loop > 0:
+                # 시간은 기준보다 지났으며, 측정횟수는 2회 이상인가
+                loop = self.loop
+                max_index = loop + 1
+
+                # 시간 변화량 계산
+                del_t = np.diff(self.specific_values[:max_index,0]).reshape(loop,1) # 열 끼리 뺄셈
+
+                # 값 변화량 계산
+                del_values = np.diff(self.specific_values[:max_index,1:6], axis = 0) # 열 끼리 뺄셈
+
+                # 시간에 따른 값 변화율 계산
+                dev_values = del_values/del_t
+                total_dev = np.sum(abs(dev_values), axis=0).flatten() # 열 끼리 덧셈
+
+                # Mouth_movement 계산
+                self.Mouth_movement = np.sum(total_dev)*100/self.face_area/max_index
+                self.Mouth_movement += self.specific_values[:max_index,1].mean()
+
+                # 시간 동기화
+                self.time1 = self.time2
+                # 버퍼 초기화
+                t = np.ones((self.buffersize,1), dtype = np.float64)/10000
+                v = np.zeros((self.buffersize,7), dtype = np.float64)
+                self.specific_values = np.concatenate((t,v), axis=1) # 행 방향
+                # 반복 횟수를 나타내는 값 초기화
+                self.loop = 0
+            else:
+                # 측정이 반복됨을 기록
+                self.loop += 1
+
+            # 역치값과 비교
+            if self.Mouth_movement > self.TH_of_Movement:
+                self.TOTAL_SUB += 1*int(self.Mouth_movement/self.TH_of_Movement)
+
         elif option == 2:
             # 계산방식 2
             if (self.time2 - self.time1) > timeref and self.loop > 0:
@@ -237,7 +270,7 @@ class speak_utils:
 
         # 터미널 출력
         p = lambda f, s: print(self.name, "의 값:\n", self.specific_values[f:f+s,:6])
-        p(printkey[0], printkey[1])
+        # p(printkey[0], printkey[1])
 
     # 몇가지 변수를 초기화
     def refresh(self, option):

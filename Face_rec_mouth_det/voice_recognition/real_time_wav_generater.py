@@ -22,7 +22,7 @@ RATE = 16000
 # 1024개의 샘플을 한 덩어리로 보고 잡음인지 음성인지 판단하는 것임
 CHUNK = 1024
 
-RECORD_SECONDS = 10
+RECORD_SECONDS = 3
 
 # 음성 파일 이름 지정. 나중에 실시간으로 바꾸거나 데이터를 따로 저장 할 것임.
 WAVE_OUTPUT_FILENAME = "file.wav"
@@ -37,10 +37,15 @@ print("recording...")
 
 frames = []
 
-for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+i = 0
+while True:
     data = stream.read(CHUNK)
-
     frames.append(data)
+    i += 1
+    print(i)
+    if i > 200:
+        i = 0
+        break
 
 print("finished recording")
 
@@ -67,7 +72,8 @@ waveFile.close()
 # 만들어진 wav 파일을 바로 음성 인식을 통해 텍스트로 변환해줌
 openApiURL = "http://aiopen.etri.re.kr:8000/WiseASR/Recognition"
 accessKey = "210b1585-4ab9-46e3-9f94-5f0d0ca5d293"
-audioFilePath = "C:/Users/pjsan/code/voice-recognition-test/file.wav"
+audioFilePath = "C:/SongsProjectfiles/INHA_capstone/Face_rec_mouth_det/voice_recognition/file.wav"
+
 languageCode = "korean"
 
 file = open(audioFilePath, "rb")
