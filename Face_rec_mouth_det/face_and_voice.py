@@ -19,6 +19,7 @@ import json
 import base64
 import pyaudio
 import wave
+from datetime import datetime
 #import make_wavfile
 #from make_wavfile import audio_recording
 
@@ -160,7 +161,6 @@ while True:
             # extract the confidence (i.e., probability) associated with
             # the prediction
             confidence = detections[0, 0, i, 2]
-
             # filter out weak detections
             if confidence > TH_of_confidence:
                 # compute the (x, y)-coordinates of the bounding box for
@@ -208,6 +208,9 @@ while True:
                     # self.Mouth_movement에 반영
                     # 계산 성공시 time1 초기화
                     man[name].differential(0.25, 2) # time2 - time1이 0.01보다 큰지 고려해서 실행됨=
+                    # 음성녹음
+                    data = audiostream.read(CHUNK)
+                    audioframe.append(data)
 
         #### detection loop나오기 (while문과 동일 위치)
         # 직전의 검출 결과의 업데이트를 반영해서
@@ -253,7 +256,7 @@ while True:
             data = data.decode("utf-8")
             print("[responseCode] " + str(response.status))
             print("[responBody]")
-            print(data)
+            print(datetime.now(), ': ', data)
             recorded_words = str(data)
 
             # 이전 검사 완료 이후 x초가 지났으면
@@ -276,7 +279,7 @@ while True:
                         man[name].color_a = 50
                         man[name].color_b = 50
                         # 네모 상자에 들어갈 말
-                        # man[name].sayingwords = recorded_words 
+                        # man[name].sayingwords = recorded_words
                         First_time = getTime(pytime(), reftime)
                     else:
                         man[name].refresh("color")
