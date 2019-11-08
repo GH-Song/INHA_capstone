@@ -293,26 +293,7 @@ while True:
         # 만들어줘야 할 변수: starx-endy,
         if detections.shape[2] > 0:
             for name in names_detected:
-                # 이름 출력 텍스트
-                text = "{}: {:.2f}%".format(name, proba * 100)
-                # Mouth_movement 출력 텍스트
-                t2 = "{:.4f}".format(man[name].Mouth_movement)
-                t3 = recorded_words
-                # 얼굴 테두리 사각형
-                cv2.rectangle(frame, (man[name].sx, man[name].sy), (man[name].ex, man[name].ey), (0, 0, 255), 2)
-                # 입술 주위 점
-                for (x, y) in man[name].Inmarks:
-                    cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
-                for (x, y) in man[name].Outmarks:
-                    cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
-                # 말풍선
-                x, y = man[name].Midmark[0,0], man[name].Midmark[0,1]
-                cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (255, 255, 255), -1)
-                cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (man[name].color_a, 255, man[name].color_b), 3)
-                cv2.putText(frame, text, (x-160, y-130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-                cv2.putText(frame, t2, (x-130, y-100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-                cv2.putText(frame, t3, (x-200, y-80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-
+                
             names_detected = []
         ###############################################################
         # update the FPS counter
