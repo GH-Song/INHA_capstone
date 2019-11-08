@@ -245,7 +245,7 @@ while True:
                         man[name].color_a = 50
                         man[name].color_b = 50
                         # 네모 상자에 들어갈 말
-                        # man[name].sayingwords = recorded_words
+                        # man[name].current_sentence = recorded_words
                         First_time = getTime(pytime(), reftime)
                     else:
                         man[name].refresh("color")

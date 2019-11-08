@@ -175,7 +175,7 @@ while True:
                 # 계속해서 텍스트를 새로 받는 것보다 말이 끝날을 때만 데이터를 받아서 인식하게 만듬
                 if finish == 0 :
                     finish = 1
-                    print(name, "의 말:", man[name].sayingwords)
+                    print(name, "의 말:", man[name].current_sentence)
         ######################출력값 지정##############################
         #print(TOTAL_SUB.items())
         # 만들어줘야 할 변수: starx-endy,

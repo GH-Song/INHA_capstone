@@ -1,5 +1,7 @@
 # import the necessary packages
 from imutils.video import FileVideoStream, VideoStream, FPS
+from imutils import face_utils
+import numpy as np
 import imutils
 import time
 import cv2
@@ -15,13 +17,21 @@ reftime = pytime()
 def getTime(s, referencetime = 0):
     ss = s / 1 - referencetime
     return ss
+
 ########################실행시 고려할 부분########################
+# 가장 바깥에서, 딕셔너리를 통해, 각각의 이름에 대한 인스턴스 생성
+# 분류 가능한 이름들
+# 기준값 (전역변수)
+
+TH_release = 1 # 100 %
+rec_pause = 0
+
+# 가장 바깥에서, 딕셔너리를 통해, 각각의 이름에 대한 인스턴스 생성
 # 기준값
 TH_of_confidence = 0.6
-TH_of_Movement = 0.2
+TH_of_Movement = 0.1
 
-# 녹음된 문장
-recorded_words = ""
+recorded_words = "" # 녹음된 문장
 
 # 분류 가능한 이름들
 names = ["Song_GH", "Kim_JW", "Choi_EH"]
@@ -29,9 +39,6 @@ names_detected = []
 
 # 프로그램 동작 여부
 program_on = False
-
-toggle = True
-finish = 0 # 녹음 종료 인지
 #####################################################################
 
 # <editor-fold>
@@ -39,6 +46,7 @@ fps = FPS().start()
 vcu = voice_utils("korean", "output/short_record.wav")
 fnu = face_name_utils()
 # </editor-fold>
+
 
 # loop over frames from the video file stream
 while True:
@@ -71,11 +79,11 @@ while True:
         program_on = False
         print("[INFO] 현재 TH_of_Movement: ", TH_of_Movement)
         TH_of_Movement = float(input("TH_of_Movement 조정: "))
-
     while program_on == True:
         # grab the frame from the threaded video stream
+        frame = vs.read()
         # resize the frame to have a width of 600 pixels
-        frame = imutils.resize(vs.read(), width=600)
+        frame = imutils.resize(frame, width=600)
         # make gray frame
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -115,67 +123,54 @@ while True:
                 # 음성을 버퍼에 저장
                 vcu.mic_read()
 
-        # 기준 시간 측정
-        Last_time = getTime(pytime(), reftime)
-
-        # 이전 검사 완료 이후 x초가 지났으면
-        if (Last_time - First_time) > 2:
-            # 2초가 경과하였으나 화자가 검출되지 않은 경우를 대비
-            if toggle < 20:
-                # 오랫동안
-                # 음성을 버퍼에 저장
-                vcu.mic_read()
-                toggle += 1
-            else:
-                # 아무도 말을 안하는 것으로 간주
-                print("[INFO] 대화가 인식되지 않습니다...")
-                # 녹음파일 생성 - 스트림 버퍼 초기화
-                vcu.make_wavfile("clear")
-                toggle = 0
-            # 모든 사람 인스턴스가 가진 self.TOTAL_SUB값을 리스트로 추출
-            TOTAL_SUB_list = []
-            for key in names_detected:
-                TOTAL_SUB_list.append(man[key].TOTAL_SUB)
-            # 누군가 한번 이상 말을 했으면 화자 검출
-            if sum(TOTAL_SUB_list) >= 1:
-                finish = 0
-                # 음성을 버퍼에 저장
-                vcu.mic_read()
-
-                for name in names_detected:
-                # 누가 가장 입을 많이 움직였는가 확인할 것
-                    if man[name].TOTAL_SUB >= max(TOTAL_SUB_list):
-                        # 화자 검출 성공
-                        [man[key].refresh("all") for key in names] # 변수 초기화
-                        First_time = getTime(pytime(), reftime) # 기준 시간 측정
-
-                        # 녹음파일 생성 - 스트림 버퍼 초기화
-                        vcu.make_wavfile("clear")
-                        print("[INFO] Recorded file is saved(화자 검출)")
-                        recorded_words = vcu.request_STT() # 클라우드 전송
-
-                        # 화자임을 표시
-                        man[name].masking(recorded_words)
-                        print("[화자 검출 시점]", datetime.now(),':', name, "의 말:", man[name].current_sentence)
-                        toggle = 0
-                        # 처음으로 화자가 된 시점 기록
-                    else:
-                        man[name].refresh("color")
-            # 아무도 말을 하지 않았으면
-            else:
-                [man[key].refresh("color") for key in names]
-                # 말이 끝날 때 데이터를 받아서 인식하게 만들기
-                if finish == 0 :
-                    finish = 1
-                    for name in names:
-                        print("전체출력")
-                        #print(name, ":", man[name].current_sentence)
-        ######################출력값 지정##############################
+        # 직전의 검출 결과의 업데이트를 반영해서
         #print(TOTAL_SUB.items())
         # 만들어줘야 할 변수: starx-endy,
         if detections.shape[2] > 0:
-            # 이름 출력 텍스트
-            [man[name].show_box(frame) for name in names_detected]
+            TOTAL_SUB_list = []
+            for name in names_detected:
+                TOTAL_SUB_list.append(man[name].TOTAL_SUB)
+            probability_list = []
+            if sum(TOTAL_SUB_list) >= 1:
+                for name in names_detected:
+                    man[name].probability = man[name].TOTAL_SUB/sum(TOTAL_SUB_list)
+            probability_list = [ man[name].probability for name in names_detected ]
+            #print("prob_list", sum(probability_list))
+            #print( getTime(pytime(), First_time) )
+            #print("rec_pause:", rec_pause)
+            #print( getTime(pytime(), First_time) > rec_pause )
+            if getTime(pytime(), First_time) > rec_pause:
+                if sum(probability_list) > 0:
+                # 누가 가장 입을 많이 움직였는가 확인할 것
+                    for name in names_detected:
+                        vcu.mic_read()
+                        if man[name].probability >= max(probability_list):
+                            # 현재 name을 가진 사람이 가장 말을 많이 했다면
+                            # 화자 검출 성공
+                            # 일단 초기화
+                            print("speaker detected")
+                            [man[key].refresh("all") for key in names] # 중요 변수 초기화
+                            # 음성인식
+                            vcu.make_wavfile("clear")
+                            recorded_words = vcu.request_STT()
+                            # 화자임을 표시
+                            man[name].masking(recorded_words)
+                            print("[화자 검출 시점]", datetime.now(),':', name, "의 말:", man[name].current_sentence)
+                            First_time = getTime(pytime())
+                            rec_pause = 1
+                            TH_release = 0.8
+                            break
+                        else:
+                            man[name].refresh("color")
+                else:
+                    # 아무도 말을 하지 않았으면
+                    for name in names:
+                        man[name].refresh("color")
+                    TH_release = 1
+            #####################출력값 지정##############################
+            for name in names_detected:
+                # 이름 출력 텍스트
+                man[name].show_box(frame)
             names_detected = []
         ###############################################################
         # update the FPS counter
@@ -189,4 +184,6 @@ while True:
             cv2.destroyAllWindows()
             vcu.mic_setoff()
             break
+
+# stop the timer and display FPS information
 fps.stop()
