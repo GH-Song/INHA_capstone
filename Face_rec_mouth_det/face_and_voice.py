@@ -293,7 +293,7 @@ while True:
         # 만들어줘야 할 변수: starx-endy,
         if detections.shape[2] > 0:
             for name in names_detected:
-                
+                man[name].show_box(frame)
             names_detected = []
         ###############################################################
         # update the FPS counter
