@@ -218,7 +218,7 @@ while True:
         Last_time = getTime(pytime(), reftime)
 
         # 2초동안 들린 소리가 누구 것에 가까운지 판단
-        if (Last_time - First_time) > 3:
+        if (Last_time - First_time) > 2:
             #for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
 
             print("finished recording")
@@ -276,10 +276,8 @@ while True:
                         for key in names:
                             man[key].refresh("all") # 중요 변수 초기화
                         # 화자임을 표시
-                        man[name].color_a = 50
-                        man[name].color_b = 50
-                        # 네모 상자에 들어갈 말
-                        # man[name].sayingwords = recorded_words
+                        # 네모 상자에 들어갈 말 생성됨
+                        man[name].masking(recorded_words)
                         First_time = getTime(pytime(), reftime)
                     else:
                         man[name].refresh("color")
@@ -294,10 +292,11 @@ while True:
         if detections.shape[2] > 0:
             for name in names_detected:
                 # 이름 출력 텍스트
+                print(name, "의 말:", man[name].sayingwords)
                 text = "{}: {:.2f}%".format(name, proba * 100)
                 # Mouth_movement 출력 텍스트
                 t2 = "{:.4f}".format(man[name].Mouth_movement)
-                t3 = recorded_words
+                t3 = man[name].sayingwords
                 # 얼굴 테두리 사각형
                 cv2.rectangle(frame, (man[name].sx, man[name].sy), (man[name].ex, man[name].ey), (0, 0, 255), 2)
                 # 입술 주위 점
@@ -311,7 +310,7 @@ while True:
                 cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (man[name].color_a, 255, man[name].color_b), 3)
                 cv2.putText(frame, text, (x-160, y-130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
                 cv2.putText(frame, t2, (x-130, y-100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-                cv2.putText(frame, t3, (x-200, y-80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+                #cv2.putText(frame, t3, (x-200, y-80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
 
             names_detected = []
         ###############################################################
