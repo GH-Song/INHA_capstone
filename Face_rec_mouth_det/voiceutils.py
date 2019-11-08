@@ -66,7 +66,7 @@ class voice_utils:
         data = data.decode("utf-8")
         words = ""
         print("[responseCode] " + str(response.status))
-        print(data)
+        print("음성인식 원본", data)
         if languageCode == "korean":
             #words = data.replace('\\n',"")
             words = data.replace('ASR_NOTOKEN', "")
