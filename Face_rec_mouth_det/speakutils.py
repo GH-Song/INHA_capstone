@@ -295,8 +295,30 @@ class speak_utils:
             self.color_b = 255
         elif option == "TOTAL_SUB":
             self.TOTAL_SUB = 0
+
     # 화자 표시
-    def masking(self):
+    def masking(self, words):
         self.color_a = 50
         self.color_b = 50
+        self.sayingwords = words
         return
+
+    def show_box(self, frame):
+        text = "{}".format(self.name)
+        # Mouth_movement 출력 텍스트
+        t2 = "{:.4f}".format(self.Mouth_movement)
+        # t3 = self.man
+        # 얼굴 테두리 사각형
+        cv2.rectangle(frame, (self.sx, self.sy), (self.ex, self.ey), (0, 0, 255), 2)
+        # 입술 주위 점
+        for (x, y) in self.Inmarks:
+            cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
+        for (x, y) in self.Outmarks:
+            cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
+        # 말풍선
+        x, y = self.Midmark[0,0], self.Midmark[0,1]
+        cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (255, 255, 255), -1)
+        cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (self.color_a, 255, self.color_b), 3)
+        cv2.putText(frame, text, (x-160, y-130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+        cv2.putText(frame, t2, (x-130, y-100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+        # cv2.putText(frame, t3, (x-200, y-80), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
