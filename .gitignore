@@ -1,4 +1,7 @@
-## Ignore ##
+*.png
+*.jpg
+*.wav
+*.pyc
 Face_rec_mouth_det/dataset/
 Face_rec_mouth_det/shape_predictor_68_face_landmarks.dat
 Face_rec_mouth_det/openface_nn4.small2.v1.t7
