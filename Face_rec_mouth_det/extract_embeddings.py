@@ -38,12 +38,11 @@ def extract():
 
 	# initialize the total number of faces processed
 	total = 0
-
 	# loop over the image paths
 	for (i, imagePath) in enumerate(imagePaths):
 		# extract the person name from the image path
-		print("[INFO] processing image {}/{}".format(i + 1,
-			len(imagePaths)))
+		print("[INFO]{:3d}/{:3d} Now processing...{}'s image \r".format(i+1,
+			len(imagePaths), imagePath.split('\\')[1]), end='')
 		name = imagePath.split(os.path.sep)[-2]
 
 		# load the image, resize it to have a width of 600 pixels (while
@@ -102,7 +101,7 @@ def extract():
 				total += 1
 
 	# dump the facial embeddings + names to disk
-	print("[INFO] serializing {} encodings...".format(total))
+	print("\n[INFO] serializing {} encodings...".format(total))
 	data = {"embeddings": knownEmbeddings, "names": knownNames}
 	f = open(path_embeddings, "wb")
 	f.write(pickle.dumps(data))
