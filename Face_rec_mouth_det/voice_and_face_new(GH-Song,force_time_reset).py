@@ -11,10 +11,11 @@ from speakutils import speak_utils
 from voiceutils import voice_utils
 from nameutils import face_name_utils
 from FaceID_resistration import FaceID
+
 ########################실행시 고려할 부분########################
 # 기준값
 TH_of_confidence = 0.6
-TH_of_Movement = 0.2
+TH_of_Movement = 0.15
 
 # 녹음된 문장
 recorded_words = ""
@@ -36,7 +37,8 @@ def getTime(s, referencetime = 0):
     return ss
 
 fps = FPS().start()
-vcu = voice_utils("korean", "output/short_record.wav")
+#vcu = voice_utils("korean", "output/short_record.wav")
+vcu = voice_utils("english", "output/short_record.wav")
 fnu = face_name_utils()
 # </editor-fold>
 
@@ -47,7 +49,7 @@ while True:
     "press 's' for start\n" +
     "press 'o' to change options\n"+
     "press 'r' to register new training data\n"
-    "press 'q' for quit: \n>>")
+    "press 'q' for quit: \n>> ")
 
     # 프로그램을 종료합니다
     if key == "q":
@@ -85,7 +87,7 @@ while True:
     while program_on == True:
         # grab the frame from the threaded video stream
         # resize the frame to have a width of 600 pixels
-        frame = imutils.resize(vs.read(), width=600)
+        frame = imutils.resize(vs.read(), width=900)
         # make gray frame
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -129,7 +131,7 @@ while True:
         Last_time = getTime(pytime(), reftime)
 
         # 이전 검사 완료 이후 x초가 지났으면
-        if (Last_time - First_time) > 2:
+        if (Last_time - First_time) > 3:
             # 2초가 경과하였으나 화자가 검출되지 않은 경우를 대비
             if toggle < 20:
                 # 오랫동안
@@ -178,8 +180,9 @@ while True:
                 # 말이 끝날 때 데이터를 받아서 인식하게 만들기
                 if finish == 0 :
                     finish = 1
-                    for name in names:
-                        print("전체출력")
+                    #for name in names:
+
+                        #print("전체출력")
                         #print(name, ":", man[name].current_sentence)
         ######################출력값 지정##############################
         #print(TOTAL_SUB.items())
