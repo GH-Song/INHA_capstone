@@ -1,8 +1,5 @@
 # import the necessary packages
 from scipy.spatial import distance as dist
-from imutils.video import FileVideoStream
-from imutils.video import VideoStream
-from imutils.video import FPS
 from imutils import face_utils
 import numpy as np
 import imutils
@@ -40,15 +37,16 @@ class speak_utils:
         self.probability = 0
         self.face_area = 0
         self.buf_top = 0
-        self.sayingwords = ""
+        self.current_sentence = ""
+        self.all_sentence = ""
         print(self.name+"'s class is created")
 
     # 검출된 얼굴 세부 부위 좌표를 저장
-    def landmark(self, gray, sx=0, sy=0, ex=0, ey=0):
+    def landmark(self, gray, sx, sy, ex, ey):
         ''' 사용법: 이미 얼굴 좌표가 검출된 후 사용
         .landmark( frame, 왼쪽상단 x, 왼쪽 상단 y, 오른쪽 하단x, 오른쪽 하단 y )'''
         # 인스턴스 변수에 저장
-        self.sx = int(sx); self.sy = int(sy); self.ex = int(ex); self.ey = int(ey)
+        self.sx = sx; self.sy = sy; self.ex = ex; self.ey = ey
         # 얼굴 면적 계산
         X = self.sx - self.ex
         Y = self.sy - self.ey
@@ -289,6 +287,7 @@ class speak_utils:
             self.color_a = 255
             self.color_b = 255
             self.probability = 0
+            self.current_sentence = ""
             # self.Mouth_movement = 0
         elif option == "color":
             self.color_a = 255
@@ -297,10 +296,11 @@ class speak_utils:
             self.TOTAL_SUB = 0
 
     # 화자 표시
-    def masking(self, words):
+    def masking(self, words = ''):
         self.color_a = 50
         self.color_b = 50
-        self.sayingwords = words
+        self.current_sentence = words
+        self.all_sentence += words
         return
 
     def show_box(self, frame):
