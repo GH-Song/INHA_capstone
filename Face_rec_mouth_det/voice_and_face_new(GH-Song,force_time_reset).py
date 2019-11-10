@@ -11,10 +11,6 @@ from speakutils import speak_utils
 from voiceutils import voice_utils
 from nameutils import face_name_utils
 
-reftime = pytime()
-def getTime(s, referencetime = 0):
-    ss = s / 1 - referencetime
-    return ss
 ########################실행시 고려할 부분########################
 # 기준값
 TH_of_confidence = 0.6
@@ -35,6 +31,10 @@ finish = 0 # 녹음 종료 인지
 #####################################################################
 
 # <editor-fold>
+def getTime(s, referencetime = 0):
+    ss = s / 1 - referencetime
+    return ss
+
 fps = FPS().start()
 vcu = voice_utils("korean", "output/short_record.wav")
 fnu = face_name_utils()
@@ -132,18 +132,19 @@ while True:
                 # 녹음파일 생성 - 스트림 버퍼 초기화
                 vcu.make_wavfile("clear")
                 toggle = 0
+
             # 모든 사람 인스턴스가 가진 self.TOTAL_SUB값을 리스트로 추출
             TOTAL_SUB_list = []
             for key in names_detected:
                 TOTAL_SUB_list.append(man[key].TOTAL_SUB)
+
             # 누군가 한번 이상 말을 했으면 화자 검출
             if sum(TOTAL_SUB_list) >= 1:
                 finish = 0
                 # 음성을 버퍼에 저장
                 vcu.mic_read()
-
-                for name in names_detected:
                 # 누가 가장 입을 많이 움직였는가 확인할 것
+                for name in names_detected:
                     if man[name].TOTAL_SUB >= max(TOTAL_SUB_list):
                         # 화자 검출 성공
                         [man[key].refresh("all") for key in names] # 변수 초기화
