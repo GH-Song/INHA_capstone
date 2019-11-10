@@ -10,7 +10,7 @@ from datetime import datetime
 from speakutils import speak_utils
 from voiceutils import voice_utils
 from nameutils import face_name_utils
-
+from FaceID_resistration import FaceID
 ########################실행시 고려할 부분########################
 # 기준값
 TH_of_confidence = 0.6
@@ -43,13 +43,22 @@ fnu = face_name_utils()
 # loop over frames from the video file stream
 while True:
     # wait for key in terminal
-    key = input("press 's' for start, 'o' to change options, 'q' for quit: \n")
-    # if the `q` key was pressed, break from the loop
+    key = input("[Options]\n"+
+    "press 's' for start\n" +
+    "press 'o' to change options\n"+
+    "press 'r' to register new training data\n"
+    "press 'q' for quit: \n>>")
 
+    # 프로그램을 종료합니다
     if key == "q":
         print("program finished")
         break
 
+    # 얼굴인식 성능을 높이기 위해 새로운 사진을 등록합니다
+    elif key == "r":
+        FaceID()
+
+    # 대화 시각화 프로그램을 시작합니다.
     elif key == "s":
         program_on = True
         # initialize the video stream, then allow the camera sensor to warm up
@@ -67,6 +76,7 @@ while True:
         reftime = pytime()
         First_time = getTime(pytime(), reftime)
 
+    # 역치값을 조정합니다
     elif key == "o":
         program_on = False
         print("[INFO] 현재 TH_of_Movement: ", TH_of_Movement)
