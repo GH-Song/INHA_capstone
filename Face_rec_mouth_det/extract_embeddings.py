@@ -10,28 +10,27 @@ import pickle
 import cv2
 import os
 
-th_confidence = 0.8 # minimum probability to filter weak detections
-path_dataset = "dataset" # "path to input directory of faces + images"
-path_embeddings = "output/embeddings.pickle" # path to output serialized db of facial embeddings
-path_detector = "face_detection_model" # path to OpenCV's deep learning face detector
-path_embedding_model = "openface_nn4.small2.v1.t7" # path to OpenCV's deep learning face embedding model
-
-# load our serialized face detector from disk
-print("[INFO] loading face detector...")
-protoPath = os.path.sep.join([path_detector, "deploy.prototxt"])
-modelPath = os.path.sep.join([path_detector,
-	"res10_300x300_ssd_iter_140000.caffemodel"])
-detector = cv2.dnn.readNetFromCaffe(protoPath, modelPath)
-
-# load our serialized face embedding model from disk
-print("[INFO] loading face recognizer...")
-embedder = cv2.dnn.readNetFromTorch(path_embedding_model)
-
-# grab the paths to the input images in our dataset
-print("[INFO] quantifying faces...")
-imagePaths = list(paths.list_images(path_dataset))
-
 def extract():
+	th_confidence = 0.8 # minimum probability to filter weak detections
+	path_dataset = "dataset" # "path to input directory of faces + images"
+	path_embeddings = "output/embeddings.pickle" # path to output serialized db of facial embeddings
+	path_detector = "face_detection_model" # path to OpenCV's deep learning face detector
+	path_embedding_model = "openface_nn4.small2.v1.t7" # path to OpenCV's deep learning face embedding model
+
+	# load our serialized face detector from disk
+	print("[INFO] loading face detector...")
+	protoPath = os.path.sep.join([path_detector, "deploy.prototxt"])
+	modelPath = os.path.sep.join([path_detector,
+		"res10_300x300_ssd_iter_140000.caffemodel"])
+	detector = cv2.dnn.readNetFromCaffe(protoPath, modelPath)
+
+	# load our serialized face embedding model from disk
+	print("[INFO] loading face recognizer...")
+	embedder = cv2.dnn.readNetFromTorch(path_embedding_model)
+
+	# grab the paths to the input images in our dataset
+	print("[INFO] quantifying faces...")
+	imagePaths = list(paths.list_images(path_dataset))
 	# initialize our lists of extracted facial embeddings and
 	# corresponding people names
 	knownEmbeddings = []
@@ -108,3 +107,7 @@ def extract():
 	f = open(path_embeddings, "wb")
 	f.write(pickle.dumps(data))
 	f.close()
+
+if __name__ == "__main__":
+    # execute only if run as a script
+    extract()
