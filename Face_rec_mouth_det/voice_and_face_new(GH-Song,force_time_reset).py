@@ -87,7 +87,7 @@ while True:
     while program_on == True:
         # grab the frame from the threaded video stream
         # resize the frame to have a width of 600 pixels
-        frame = imutils.resize(vs.read(), width=900)
+        frame = imutils.resize(vs.read(), width=800)
         # make gray frame
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -177,11 +177,11 @@ while True:
             # 아무도 말을 하지 않았으면
             else:
                 [man[key].refresh("color") for key in names]
+                vcu.mic_read()
                 # 말이 끝날 때 데이터를 받아서 인식하게 만들기
                 if finish == 0 :
                     finish = 1
                     #for name in names:
-
                         #print("전체출력")
                         #print(name, ":", man[name].current_sentence)
         ######################출력값 지정##############################

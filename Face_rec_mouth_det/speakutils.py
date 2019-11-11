@@ -328,7 +328,7 @@ class speak_utils:
         else:
             # 말풍선
             x, y = self.Midmark[0,0], self.Midmark[0,1]
-            t = 220
+            t = 210
             b = t - 90
             cv2.rectangle(frame, (x - 160, y - t), (x + 160, y - b), (255, 255, 255), -1)
             cv2.rectangle(frame, (x - 160, y - t), (x + 160, y - b), (self.color_a, 255, self.color_b), 3)
