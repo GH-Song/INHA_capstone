@@ -274,10 +274,10 @@ for key in names:
 #region
 
 # 파일 및 폴더 경로 지정
-PATH_predictor = "shape_predictor_68_face_landmarks.dat"
-PATH_facedetection='face_detection_model'
-PATH_recognizer = 'output/recognizer.pickle'
-PATH_le = 'output/le.pickle'
+PATH_predictor = "../shape_predictor_68_face_landmarks.dat"
+PATH_facedetection='../face_detection_model'
+PATH_recognizer = '../output/recognizer.pickle'
+PATH_le = '../output/le.pickle'
 
 # grab the indexes of the facial landmarks for the left and
 outmark_start, outmark_end = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
@@ -300,7 +300,7 @@ detector = cv2.dnn.readNetFromCaffe(protoPath, modelPath)
 
 # load our serialized face embedding model from disk
 print("[INFO] loading face recognizer...")
-embedder = cv2.dnn.readNetFromTorch('openface_nn4.small2.v1.t7')
+embedder = cv2.dnn.readNetFromTorch('../openface_nn4.small2.v1.t7')
 
 # load the actual face recognition model along with the label encoder
 recognizer = pickle.loads(open(PATH_recognizer, "rb").read())
@@ -455,6 +455,7 @@ while True:
         for name in names_detected:
             # 이름 출력 텍스트
             text = "{}: {:.2f}%".format(name, proba * 100)
+
             # Mouth_movement 출력 텍스트
             t2 = "{:.4f}".format(man[name].Mouth_movement)
             # 얼굴 테두리 사각형
@@ -466,9 +467,24 @@ while True:
                 cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
             # 말풍선
             x, y = man[name].Midmark[0,0], man[name].Midmark[0,1]
+
+            # sanghong
+            from PIL import ImageFont, Image, ImageDraw
+            unicode_font = ImageFont.truetype('../gulim.ttf')
+
+            text = "안녕하세요"
+            # sanghong
+            dummy = Image.fromarray(frame)
+            hangul = ImageDraw.Draw(dummy)
+            hangul.text((x-10, y-30), text, font=unicode_font)
+            frame = np.array(dummy)
+
+
             cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (255, 255, 255), -1)
             cv2.rectangle(frame, (x - 160, y - 150), (x + 160, y - 70), (man[name].color_a, 255, man[name].color_b), 3)
-            cv2.putText(frame, text, (x-160, y-130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+
+            # 원래 코드
+            # cv2.putText(frame, text, (x-160, y-130), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
             cv2.putText(frame, t2, (x-130, y-100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
             # 터미널 출력
             print(Last_time,'/', name, "'s TOTAL:", man[name].Mouth_movement)
