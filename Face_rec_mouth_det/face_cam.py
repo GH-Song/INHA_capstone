@@ -107,15 +107,19 @@ def face_from_cam():
                             n += 1
 
                         text = "saved: "+str(n)+"/20"
-                        cv2.putText(frame, text, (400, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
+                        cv2.putText(frame, text, (400, 100), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (255, 255, 255), 5)
+                        cv2.putText(frame, text, (400, 100), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 0, 0), 3)
                         cv2.imshow("Frame", frame)
                         key = cv2.waitKey(1) & 0xFF
 
                         if key == ord("q"):
-                            vs.stop()
-                            cv2.destroyAllWindows()
                             break
 
+                    cv2.destroyAllWindows()
+                    print("[INFO] 촬영을 종료합니다. 저장된 사진: ", n,"장\n\n")
+                    break
+        vs.stop()
+        cv2.destroyAllWindows()
 if __name__ == "__main__":
     # execute only if run as a script
     face_from_cam()
