@@ -23,6 +23,7 @@ recorded_words = ""
 
 # 대화 기록
 Total_words = ""
+
 # 폰트
 unicode_font = ImageFont.truetype('./gulim.ttf')
 
@@ -40,28 +41,26 @@ finish = 1 # 녹음 종료 인지
 #####################################################################
 
 # <editor-fold>
+
 def getTime(s, referencetime = 0):
     ss = s / 1 - referencetime
     return ss
 
-fps = FPS().start()
-vcu = voice_utils("korean", "output/short_record.wav")
-korean = 1
-english = 0
-#vcu = voice_utils("english", "output/short_record.wav")
-#english = 1
-#korean = 0
-fnu = face_name_utils()
-# </editor-fold>
-
-# loop over frames from the video file stream
-while True:
-    # wait for key in terminal
+def user_interface():
     key = input("[Options]\n"+
     "press 's' for start\n" +
     "press 'o' to change options\n"+
     "press 'r' to register new training data\n"
     "press 'q' for quit: \n>> ")
+    return key
+
+# </editor-fold>
+
+
+# loop over frames from the video file stream
+while True:
+    # wait for key in terminal
+    key = user_interface()
 
     # 프로그램을 종료합니다
     if key == "q":
@@ -80,8 +79,15 @@ while True:
         vs = VideoStream(src=0).start()
         time.sleep(1.0)
 
-        # 마이크 녹음 초기화
-        vcu.mic_setup()
+        # fps측정 시작
+        fps = FPS().start()
+
+        # 음성인식 객체 생성
+        vcu = voice_utils("korean", "output/short_record.wav")
+        #vcu = voice_utils("english", "output/short_record.wav")
+
+        # 얼굴 인식 객체 생성
+        fnu = face_name_utils()
 
         # 사람 객체 생성
         man = {name: speak_utils(name, TH_of_Movement) for name in names}
@@ -91,6 +97,8 @@ while True:
         First_time = getTime(pytime(), reftime)
         Standard_time = First_time
 
+        # 마이크 녹음 초기화
+        vcu.mic_setup()
     # 역치값을 조정합니다
     elif key == "o":
         program_on = False
@@ -146,10 +154,7 @@ while True:
         # 3초 이상 말하는 사람이 없을 시 wav 파일 초기화
         if (Last_time - Standard_time > 3):
             vcu.make_wavfile("clear")
-
-        # 이전 검사 완료 이후 x초가 지났으면
-        if (Last_time - First_time) > 1:
-            # 2초가 경과하였으나 화자가 검출되지 않은 경우를 대비
+            # print("[INFO] 대화가 인식되지 않습니다...")
             '''if toggle < 20:
                 # 오랫동안
                 # 음성을 버퍼에 저장
@@ -162,64 +167,59 @@ while True:
                 vcu.make_wavfile("clear")
                 toggle = 0'''
 
-            # 모든 사람 인스턴스가 가진 self.TOTAL_SUB값을 리스트로 추출
-            TOTAL_SUB_list = []
-            for key in names_detected:
-                TOTAL_SUB_list.append(man[key].TOTAL_SUB)
+        # 모든 사람 인스턴스가 가진 self.TOTAL_SUB값을 리스트로 추출
+        TOTAL_SUB_list = []
+        for key in names_detected:
+            TOTAL_SUB_list.append(man[key].TOTAL_SUB)
 
-            # 누군가 한번 이상 말을 했으면 화자 검출
-            if sum(TOTAL_SUB_list) >= 1:
-                # 음성을 버퍼에 저장
-                vcu.mic_read()
-                # 누가 가장 입을 많이 움직였는가 확인할 것
-                for name in names_detected:
-                    if man[name].TOTAL_SUB >= max(TOTAL_SUB_list):
-                        # 화자 검출 성공
-                        [man[key].refresh("all") for key in names] # 변수 초기화
-                        First_time = getTime(pytime(), reftime) # 기준 시간 측정
+        # 누군가 한번 이상 말을 했으면 화자 검출
+        if sum(TOTAL_SUB_list) >= 1:
+            # 음성을 버퍼에 저장
+            vcu.mic_read()
+            # 누가 가장 입을 많이 움직였는가 확인할 것
+            for name in names_detected:
+                if man[name].TOTAL_SUB >= max(TOTAL_SUB_list):
+                    # 화자 검출 성공
+                    [man[key].refresh("all") for key in names] # 변수 초기화
+                    First_time = getTime(pytime(), reftime) # 기준 시간 측정
 
-                        # 말하는 시간 업뎃
-                        Standard_time = First_time
-                        finish = 0
+                    # 말하는 시간 업뎃
+                    Standard_time = First_time
+                    finish = 0
 
-                        # 화자임을 표시
-                        current_speaker = name
-                        man[name].masking(recorded_words)
-                        print("[화자 검출 시점]", datetime.now(),':', name, "의 말:", man[name].current_sentence)
-                        toggle = 0
-                        # 처음으로 화자가 된 시점 기록
-                    else:
-                        man[name].refresh("color")
-            # 아무도 말을 하지 않았으면
-            else:
-                [man[key].refresh("color") for key in names]
-                # 말이 끝날 때 데이터를 받아서 인식하게 만들기
-                if finish == 0:
-                    finish = 1
-                    vcu.make_wavfile("clear")
-                    print("[INFO] Recorded file is saved(화자 검출)")
-                    recorded_words = vcu.request_STT()  # 클라우드 전송
-                    Total_words += "\n" + current_speaker + " : " + vcu.request_STT()  # 대화 기록
-                    man[current_speaker].masking(recorded_words)
-                    print("[화자 검출 시점]", datetime.now(), ':', current_speaker, "의 말:",
-                          man[current_speaker].current_sentence)
+                    # 화자임을 표시
+                    current_speaker = name
+                    man[name].masking("")
+                    #print("[화자 검출 시점]", datetime.now(),':', name, "의 말:", man[name].current_sentence)
+                    # toggle = 0
+                    # 처음으로 화자가 된 시점 기록
+                else:
+                    man[name].refresh("color")
 
-                #for name in names:
-                        #print("전체출력")
-                        #print(name, ":", man[name].current_sentence)
+        # 아무도 말을 하지 않았으면
+        else:
+            [man[key].refresh("color") for key in names]
+            # 말이 끝날 때 데이터를 받아서 인식하게 만들기
+            if finish == 0:
+                finish = 1
+                vcu.make_wavfile("clear")
+                print("[INFO] Recorded file is saved(화자 검출)")
+
+                recorded_words = vcu.request_STT()  # 클라우드 전송
+                Total_words += "\n(" + str(datetime.now())+ ') ' + current_speaker + " : " + vcu.request_STT()  # 대화 기록
+
+                man[current_speaker].masking(recorded_words)
+                #recorded_words = ""
+
+                print("[화자 검출 시점]", datetime.now(), ':', current_speaker, "의 말:",
+                      man[current_speaker].current_sentence)
+
         ######################출력값 지정##############################
-        #print(TOTAL_SUB.items())
-        # 만들어줘야 할 변수: starx-endy,
         if detections.shape[2] > 0:
             # 이름 출력 텍스트
-            if english == 1 :
-                [man[name].show_box(frame) for name in names_detected]
-                names_detected = []
-
-            if korean == 1 :
-                [man[name].show_box_korean(frame) for name in names_detected]
-                names_detected = []
-
+            for name in names_detected:
+                frame = man[name].draw_frame(frame)
+            names_detected = []
         ###############################################################
         # update the FPS counter
         fps.update()
@@ -228,11 +228,14 @@ while True:
         key = cv2.waitKey(1) & 0xFF
         # if the `q` key was pressed, break from the loop
         if key == ord("q"):
+            print("\n\n[INFO] Program is stopped...\n")
             f = open("record.txt", "w") # 텍스트 파일 만들기
             f.write(Total_words)
             f.close()
             vs.stop()
             cv2.destroyAllWindows()
             vcu.mic_setoff()
+            fps.stop()
+            print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+            print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
             break
-fps.stop()

@@ -34,24 +34,25 @@ finish = 0 # 녹음 종료 인지
 #####################################################################
 
 # <editor-fold>
+
 def getTime(s, referencetime = 0):
     ss = s / 1 - referencetime
     return ss
 
-fps = FPS().start()
-#vcu = voice_utils("korean", "output/short_record.wav")
-vcu = voice_utils("english", "output/short_record.wav")
-fnu = face_name_utils()
-# </editor-fold>
-
-# loop over frames from the video file stream
-while True:
-    # wait for key in terminal
+def user_interface():
     key = input("[Options]\n"+
     "press 's' for start\n" +
     "press 'o' to change options\n"+
     "press 'r' to register new training data\n"
     "press 'q' for quit: \n>> ")
+    return key
+
+# </editor-fold>
+
+# loop over frames from the video file stream
+while True:
+    # wait for key in terminal
+    key = user_interface()
 
     # 프로그램을 종료합니다
     if key == "q":
@@ -70,8 +71,15 @@ while True:
         vs = VideoStream(src=0).start()
         time.sleep(1.0)
 
-        # 마이크 녹음 초기화
-        vcu.mic_setup()
+        # fps측정 시작
+        fps = FPS().start()
+
+        # 음성인식 객체 생성
+        vcu = voice_utils("korean", "output/short_record.wav")
+        #vcu = voice_utils("english", "output/short_record.wav")
+
+        # 얼굴 인식 객체 생성
+        fnu = face_name_utils()
 
         # 사람 객체 생성
         man = {name: speak_utils(name, TH_of_Movement) for name in names}
@@ -79,6 +87,10 @@ while True:
         # 시간 동기화
         reftime = pytime()
         First_time = getTime(pytime(), reftime)
+        Standard_time = First_time
+
+        # 마이크 녹음 초기화
+        vcu.mic_setup()
 
     # 역치값을 조정합니다
     elif key == "o":
@@ -183,15 +195,11 @@ while True:
                 # 말이 끝날 때 데이터를 받아서 인식하게 만들기
                 if finish == 0 :
                     finish = 1
-                    #for name in names:
-                        #print("전체출력")
-                        #print(name, ":", man[name].current_sentence)
         ######################출력값 지정##############################
-        #print(TOTAL_SUB.items())
-        # 만들어줘야 할 변수: starx-endy,
         if detections.shape[2] > 0:
             # 이름 출력 텍스트
-            [man[name].show_box(frame) for name in names_detected]
+            for name in names_detected:
+                frame = man[name].draw_frame(frame)
             names_detected = []
         ###############################################################
         # update the FPS counter
@@ -204,5 +212,8 @@ while True:
             vs.stop()
             cv2.destroyAllWindows()
             vcu.mic_setoff()
+            fps.stop()
+            print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+            print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
             break
 fps.stop()
