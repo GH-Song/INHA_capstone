@@ -1,6 +1,7 @@
 # import the necessary packages
 from scipy.spatial import distance as dist
 from imutils import face_utils
+from PIL import ImageFont, Image, ImageDraw
 import numpy as np
 import imutils
 import pickle
@@ -335,3 +336,36 @@ class speak_utils:
             cv2.putText(frame, text, (x-150, y-t+20), font, 0.7, (0, 0, 0), 2)
             # cv2.putText(frame, t2, (x-130, y-100), font, 0.7, (0, 0, 0), 2)
             cv2.putText(frame, t3, (x-140, y-t+50), font, 0.7, (0, 0, 0), 1)
+
+    def show_box_korean(self, frame):
+        text = "{}".format(self.name)
+        # Mouth_movement 출력 텍스트
+        t2 = "{:.4f}".format(self.Mouth_movement)
+        t3 = self.current_sentence
+        font = cv2.FONT_HERSHEY_DUPLEX
+        unicode_font = ImageFont.truetype('./gulim.ttf', 12, 0)
+
+        if t3 == "":
+            # 작은 말풍선
+            x, y = self.Midmark[0, 0], self.Midmark[0, 1]
+            cv2.rectangle(frame, (x - 100, y + 300), (x + 100, y + 250), (255, 255, 255), -1)
+            cv2.rectangle(frame, (x - 100, y + 300), (x + 100, y + 250), (self.color_a, 255, self.color_b), 3)
+            cv2.putText(frame, text, (x - 60, y + 270), font, 0.7, (0, 0, 0), 2)
+            cv2.putText(frame, t2, (x - 60, y + 290), font, 0.5, (0, 0, 0), 1)
+
+
+        else:
+            # 말풍선
+            x, y = self.Midmark[0, 0], self.Midmark[0, 1]
+            t = 210
+            b = t - 90
+            bl,g,r,a = 0,0,0,0
+            cv2.rectangle(frame, (x - 160, y - t), (x + 160, y - b), (255, 255, 255), -1)
+            cv2.rectangle(frame, (x - 160, y - t), (x + 160, y - b), (self.color_a, 255, self.color_b), 3)
+            cv2.putText(frame, text, (x - 150, y - t + 20), font, 0.7, (0, 0, 0), 2)
+            # cv2.putText(frame, t2, (x-130, y-100), font, 0.7, (0, 0, 0), 2)
+            #cv2.putText(frame, t3, (x - 140, y - t + 50), font, 0.7, (0, 0, 0), 1)
+            dummy = Image.fromarray(frame)
+            hangul = ImageDraw.Draw(dummy)
+            hangul.text((x - 140, y - t + 50), t3, font=unicode_font, fill=(bl,g,r,a))
+            frame = np.array(dummy)

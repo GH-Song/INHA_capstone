@@ -11,6 +11,7 @@ from speakutils import speak_utils
 from voiceutils import voice_utils
 from nameutils import face_name_utils
 from FaceID_resistration import FaceID
+from PIL import ImageFont, Image, ImageDraw
 
 ########################실행시 고려할 부분########################
 # 기준값
@@ -21,6 +22,8 @@ TH_of_Movement = 0.15
 recorded_words = ""
 # 대화 기록
 Total_words = ""
+# 폰트
+unicode_font = ImageFont.truetype('./gulim.ttf')
 
 # 분류 가능한 이름들
 names = ["Song_GH", "Kim_JW", "Choi_EH"]
@@ -40,7 +43,11 @@ def getTime(s, referencetime = 0):
 
 fps = FPS().start()
 vcu = voice_utils("korean", "output/short_record.wav")
+korean = 1
+english = 0
 #vcu = voice_utils("english", "output/short_record.wav")
+#english = 1
+#korean = 0
 fnu = face_name_utils()
 # </editor-fold>
 
@@ -202,8 +209,14 @@ while True:
         # 만들어줘야 할 변수: starx-endy,
         if detections.shape[2] > 0:
             # 이름 출력 텍스트
-            [man[name].show_box(frame) for name in names_detected]
-            names_detected = []
+            if english == 1 :
+                [man[name].show_box(frame) for name in names_detected]
+                names_detected = []
+
+            if korean == 1 :
+                [man[name].show_box_korean(frame) for name in names_detected]
+                names_detected = []
+
         ###############################################################
         # update the FPS counter
         fps.update()
