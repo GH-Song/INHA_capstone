@@ -176,9 +176,7 @@ while True:
                 if finish == 0 :
                     finish = 1
                     print(name, "의 말:", man[name].current_sentence)
-        ######################출력값 지정##############################
-        #print(TOTAL_SUB.items())
-        # 만들어줘야 할 변수: starx-endy,
+        ######################출력값 지정#############################
         if detections.shape[2] > 0:
             for name in names_detected:
                 # 이름 출력 텍스트

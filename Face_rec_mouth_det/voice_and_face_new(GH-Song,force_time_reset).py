@@ -21,7 +21,9 @@ TH_of_Movement = 0.15
 recorded_words = ""
 
 # 분류 가능한 이름들
-names = ["Song_GH", "Kim_JW", "Choi_EH"]
+namepath = os.path.join(os.getcwd(),"dataset")
+names = os.listdir(namepath)
+names.remove("Unknown")
 names_detected = []
 
 # 프로그램 동작 여부

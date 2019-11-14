@@ -20,13 +20,16 @@ TH_of_Movement = 0.15
 
 # 녹음된 문장
 recorded_words = ""
+
 # 대화 기록
 Total_words = ""
 # 폰트
 unicode_font = ImageFont.truetype('./gulim.ttf')
 
 # 분류 가능한 이름들
-names = ["Song_GH", "Kim_JW", "Choi_EH"]
+namepath = os.path.join(os.getcwd(),"dataset")
+names = os.listdir(namepath)
+names.remove("Unknown")
 names_detected = []
 
 # 프로그램 동작 여부
