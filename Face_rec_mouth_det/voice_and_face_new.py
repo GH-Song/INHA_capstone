@@ -46,6 +46,7 @@ def getTime(s, referencetime = 0):
     ss = s / 1 - referencetime
     return ss
 
+# 안내 출력
 def user_interface():
     key = input("[Options]\n"+
     "press 's' for start\n" +
