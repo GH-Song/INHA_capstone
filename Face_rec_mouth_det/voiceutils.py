@@ -58,17 +58,18 @@ class voice_utils:
 
         http = urllib3.PoolManager()
         print("[INFO] 음성인식 요청중...")
-        response = http.request(
+        self.response = http.request(
             "POST",
             openApiURL,
             headers={"Content-Type": "application/json; charset=UTF-8"},
             body=json.dumps(requestJson)
         )
 
-        data = response.data
+    def get_STT(self):
+        data = self.response.data
         data = data.decode("utf-8")
         words = ""
-        print("[responseCode] " + str(response.status))
+        print("[responseCode] " + str(self.response.status))
         # print("음성인식 원본", data)
 
         # 한국어 출력

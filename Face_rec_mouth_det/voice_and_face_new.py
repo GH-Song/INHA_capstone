@@ -1,5 +1,5 @@
 # import the necessary packages
-from imutils.video import FileVideoStream, VideoStream, FPS
+from imutils.video import FileVideoStream, VideoStream
 import imutils
 import time
 import cv2
@@ -11,8 +11,6 @@ from speakutils import speak_utils
 from voiceutils import voice_utils
 from nameutils import face_name_utils
 from FaceID_resistration import FaceID
-from PIL import ImageFont, Image, ImageDraw
-
 ########################실행시 고려할 부분########################
 # 기준값
 TH_of_confidence = 0.6
@@ -23,9 +21,6 @@ recorded_words = ""
 
 # 대화 기록
 Total_words = ""
-
-# 폰트
-unicode_font = ImageFont.truetype('./gulim.ttf')
 
 # 분류 가능한 이름들
 namepath = os.path.join(os.getcwd(),"dataset")
@@ -38,6 +33,9 @@ program_on = False
 
 toggle = True
 finish = 1 # 녹음 종료 인지
+
+frameTime = 0
+prevTime = 0
 #####################################################################
 
 # <editor-fold>
@@ -79,9 +77,6 @@ while True:
         print("[INFO] starting video stream...")
         vs = VideoStream(src=0).start()
         time.sleep(1.0)
-
-        # fps측정 시작
-        fps = FPS().start()
 
         # 음성인식 객체 생성
         vcu = voice_utils("korean", "output/short_record.wav")
@@ -206,8 +201,9 @@ while True:
                 vcu.make_wavfile("clear")
                 print("[INFO] Recorded file is saved(화자 검출)")
 
-                recorded_words = vcu.request_STT()  # 클라우드 전송
-                Total_words += "\n(" + str(datetime.now())+ ') ' + current_speaker + " : " + vcu.request_STT()  # 대화 기록
+                vcu.request_STT()  # 클라우드 요청
+                recorded_words = vcu.get_STT()
+                Total_words += "\n(" + str(datetime.now())+ ') ' + current_speaker + " : " + recorded_words  # 대화 기록
 
                 man[current_speaker].masking(recorded_words)
                 #recorded_words = ""
@@ -221,9 +217,22 @@ while True:
             for name in names_detected:
                 frame = man[name].draw_frame(frame)
             names_detected = []
+
+            #현재 시간 가져오기 (초단위로 가져옴)
+        frameTime = pytime()
+        sec = frameTime - prevTime
+        #이전 시간을 현재시간으로 다시 저장시킴
+        prevTime = frameTime
+
+        # 프레임 계산 한바퀴 돌아온 시간을 1초로 나누면 된다.
+        # 1 / time per frame
+        fpers = 1/(sec)
+
+        # 프레임 수를 문자열에 저장
+        strfps = "FPS : %0.1f" % fpers
+
+        cv2.putText(frame, strfps, (50,50), cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 0, 0), 2)
         ###############################################################
-        # update the FPS counter
-        fps.update()
         # show the output frame
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
@@ -236,7 +245,4 @@ while True:
             vs.stop()
             cv2.destroyAllWindows()
             vcu.mic_setoff()
-            fps.stop()
-            print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-            print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
             break
