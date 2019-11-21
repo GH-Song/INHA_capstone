@@ -1,6 +1,7 @@
 # import the necessary packages
 from scipy.spatial import distance as dist
 from imutils import face_utils
+from PIL import ImageFont, Image, ImageDraw
 import numpy as np
 import imutils
 import pickle
@@ -8,6 +9,7 @@ import time
 import cv2
 import dlib
 import os
+from PIL import ImageFont, Image, ImageDraw
 
 # face landmark 추출에 필요한 predictor모듈 기능 활성화
 PATH_predictor = "shape_predictor_68_face_landmarks.dat"
@@ -328,10 +330,54 @@ class speak_utils:
         else:
             # 말풍선
             x, y = self.Midmark[0,0], self.Midmark[0,1]
-            t = 220
+            t = 210
             b = t - 90
             cv2.rectangle(frame, (x - 160, y - t), (x + 160, y - b), (255, 255, 255), -1)
             cv2.rectangle(frame, (x - 160, y - t), (x + 160, y - b), (self.color_a, 255, self.color_b), 3)
             cv2.putText(frame, text, (x-150, y-t+20), font, 0.7, (0, 0, 0), 2)
             # cv2.putText(frame, t2, (x-130, y-100), font, 0.7, (0, 0, 0), 2)
             cv2.putText(frame, t3, (x-140, y-t+50), font, 0.7, (0, 0, 0), 1)
+
+    def draw_frame(self, frame):
+        # 이름 출력 텍스트
+        username = "{}".format(self.name)
+        # Mouth_movement 출력 텍스트
+        t2 = "{:.4f}".format(self.Mouth_movement)
+        # 최근 말한 문장
+        t3 = self.current_sentence
+        font = cv2.FONT_HERSHEY_DUPLEX
+
+        # sanghong
+        path_font = 'gulim.ttf'
+        unicode_font = ImageFont.truetype(path_font, 24)
+
+        b,g,r,a = 0,255,0,0
+        text = "안녕하세요"
+
+        # sanghong
+        x, y = self.Midmark[0,0], self.Midmark[0,1]
+
+
+        if t3 == "":
+            # 작은 말풍선
+            cv2.rectangle(frame, (x - 100, y + 300), (x + 100, y + 250), (255, 255, 255), -1)
+            cv2.rectangle(frame, (x - 100, y + 300), (x + 100, y + 250), (self.color_a, 255, self.color_b), 3)
+
+            # 사용자 이름 출력
+            cv2.putText(frame, username, (x-60, y+270), font, 0.7, (0, 0, 0), 2)
+            # Mouth_movement 출력
+            cv2.putText(frame, t2, (x-60, y+290), font, 0.5, (0, 0, 0), 1)
+        else:
+            # 큰 말풍선
+            top = 210
+            bottom = top - 90
+            cv2.rectangle(frame, (x - 160, y - top), (x + 160, y - bottom), (255, 255, 255), -1)
+            cv2.rectangle(frame, (x - 160, y - top), (x + 160, y - bottom), (self.color_a, 255, self.color_b), 3)
+            cv2.putText(frame, username, (x-150, y-top+20), font, 0.7, (0, 0, 0), 2)
+            # cv2.putText(frame, t3, (x-140, y-top+50), font, 0.7, (0, 0, 0), 1)
+            # 한글 출력 가능
+            dummy = Image.fromarray(frame)
+            hangul = ImageDraw.Draw(dummy)
+            hangul.text((x-140, y-top+50), t3, font=unicode_font, fill = (b,g,r,a))
+            frame = np.array(dummy)
+        return frame
