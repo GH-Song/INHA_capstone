@@ -26,6 +26,8 @@ class voice_utils:
         self.languageCode = language
         # 녹음 파일 저장 경로
         self.audiofile = filename
+        # amplitude
+        self.data2 = 0
         return
 
     # 마이크 스트리밍 시작
@@ -100,3 +102,6 @@ class voice_utils:
     def mic_read(self):
         data = self.audiostream.read(CHUNK)
         self.audioframe.append(data)
+        data2 = np.fromstring(data, dtype=np.int16)
+        data2 = int(np.average(np.abs(data2)))
+        self.data2 = data2
