@@ -25,7 +25,7 @@ recorded_words = ""
 
 # 대화 기록
 Total_words = ""
-
+k=0
 # 폰트
 unicode_font = ImageFont.truetype('./gulim.ttf')
 
@@ -105,6 +105,7 @@ while True:
         reftime = pytime()
         First_time = getTime(pytime(), reftime)
         Standard_time = First_time
+        Standard_time2 = First_time
 
         # 마이크 녹음 초기화
         vcu.mic_setup()
@@ -171,6 +172,13 @@ while True:
         # 3초 이상 말하는 사람이 없을 시 wav 파일 초기화
         if (Last_time - Standard_time > 1):
             vcu.make_wavfile("clear")
+        if (vcu.data2 > 100):
+            k = 0
+        if (vcu.data2 < 50):
+            k = k + 1
+            #Standard_time2 = getTime(pytime(), reftime)
+            if (k > 10):
+                vcu.make_wavfile("clear")
             # print("[INFO] 대화가 인식되지 않습니다...")
             '''if toggle < 20:
                 # 오랫동안
@@ -223,9 +231,9 @@ while True:
                     finish = 1
                     vcu.make_wavfile("clear")
                     print("[INFO] Recorded file is saved(화자 검출)")
-
-                    recorded_words = vcu.request_STT()  # 클라우드 전송
-                    Total_words += "\n(" + str(datetime.now())+ ') ' + current_speaker + " : " + vcu.request_STT()  # 대화 기록
+                    vcu.request_STT()
+                    recorded_words = vcu.get_STT()  # 클라우드 전송
+                    Total_words += "\n(" + str(datetime.now())+ ') ' + current_speaker + " : " + recorded_words # 대화 기록
 
                     man[current_speaker].masking(recorded_words)
                     #recorded_words = ""

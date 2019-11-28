@@ -29,6 +29,7 @@ class speak_utils:
         self.name = name
         self.buffersize = buffersize
         self.TOTAL_SUB = 0
+        self.COUNT = 0
         self.color_a = 255; self.color_b = 255
         self.specific_values = np.zeros((self.buffersize,7), dtype = np.float64)
         self.time1 = 0; self.time2 = 0
@@ -203,6 +204,7 @@ class speak_utils:
             # 역치값과 비교
             if self.Mouth_movement > self.TH_of_Movement:
                 self.TOTAL_SUB += 1*int(self.Mouth_movement/self.TH_of_Movement)
+                self.COUNT += 1
 
         elif option == 2:
             # 계산방식 2
@@ -247,6 +249,7 @@ class speak_utils:
             # 역치값과 비교
             if self.Mouth_movement > self.TH_of_Movement:
                 self.TOTAL_SUB += 1*int(self.Mouth_movement/self.TH_of_Movement)
+                self.COUNT += 1
                 if disp == True:
                     print("Upper than threshold")
                     print("------------------------------------")
@@ -286,6 +289,7 @@ class speak_utils:
         option: 'all', 'color', 'TOTAL_SUB' """
         if option == "all":
             self.TOTAL_SUB = 0
+            self.COUNT = 0
             self.color_a = 255
             self.color_b = 255
             self.probability = 0
@@ -296,6 +300,7 @@ class speak_utils:
             self.color_b = 255
         elif option == "TOTAL_SUB":
             self.TOTAL_SUB = 0
+            self.COUNT = 0
 
     # 화자 표시
     def masking(self, words = ''):
